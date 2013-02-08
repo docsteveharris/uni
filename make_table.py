@@ -67,6 +67,8 @@ from myspot import clean_field_aliases
 
 from mypy import sql_multistmt
 
+# import pdb; pdb.set_trace()
+
 def get_tspec(tdict, tab_name):
     # Pull table spec
     # needs tdict
@@ -126,7 +128,7 @@ def run_fchk(col, chk):
     chk_type = chk['type']
     print "OK: For field %s, checking %s" % (chk_field_name, chk_type)
 
-    chk_types = ['legal_vals', 'min', 'max', 'regex', 'raw']
+    chk_types = ['legal_vals', 'legal_alias', 'min', 'max', 'regex', 'raw']
     if chk_type not in chk_types:
         print "ERROR: Check type (%s) not specified" % chk_type
         sys.exit(1)
@@ -178,7 +180,11 @@ def run_fchk(col, chk):
         sys.exit(1)
 
     for index, item in enumerate(col):
-        value = item['clean']
+        # CHANGED: 2013-02-08 - check the raw value not the clean value if alias
+        if chk_type == 'legal_alias':
+            value = str(item['raw'].lower())
+        else:
+            value = item['clean']
         if value == None:
             continue
 
@@ -525,40 +531,42 @@ else:
 
 # define new sql_type based on valias
 for fspec in fdict:
-    # CHANGED: 2013-01-28 - skips fields without sqltype definition 
+    # CHANGED: 2013-01-28 - skips fields without sqltype definition
     # such fields cannot be part of the import/index/make process
     if 'sqltype' not in fspec:
         continue
     sqltype = fspec['sqltype']
     # CHANGED: 2012-09-18 - to handle multiple valias types
     if 'valias' in fspec or 'valiases' in fspec:
-            valias = None
-            if 'valiases' in fspec:
-                for v in fspec['valiases']:
-                    if tab_name in v['valias_tables']:
-                        valias = v['valias']
-            else:
-                valias = fspec['valias']
-            if valias:
-                valias_values = valias.values()
-                maxrank = 0
-                for v in valias_values:
-                    if v is None:
-                        continue
-                    rank = {int:1, float:2, str:3}[type(v)]
-                    if rank > maxrank:
-                        maxrank = rank
-                sqltype = {1:'smallint', 2:'float', 3:'char'}[maxrank]
-                # valias_type = type(fspec['valias'].values()[0])
-                # if valias_type == str:
-                #     sqltype = 'char'
-                # elif valias_type == int:
-                #     sqltype = 'smallint'
-                # elif valias_type == float:
-                #     sqltype = 'float'
-                # else:
-                #     print "ERROR: Unrecognised type: %r" % valias_type
-                #     sys.exit(1)
+        valias = None
+        if 'valiases' in fspec:
+            for v in fspec['valiases']:
+                if tab_name in v['valias_tables']:
+                    valias = v['valias']
+        # CHANGED: 2013-02-07
+        # - now uses default valias if specific valias not defined in valiases
+        if valias is None and 'valias' in fspec:
+            valias = fspec['valias']
+        if valias:
+            valias_values = valias.values()
+            maxrank = 0
+            for v in valias_values:
+                if v is None:
+                    continue
+                rank = {int:1, float:2, str:3}[type(v)]
+                if rank > maxrank:
+                    maxrank = rank
+            sqltype = {1:'smallint', 2:'float', 3:'char'}[maxrank]
+            # valias_type = type(fspec['valias'].values()[0])
+            # if valias_type == str:
+            #     sqltype = 'char'
+            # elif valias_type == int:
+            #     sqltype = 'smallint'
+            # elif valias_type == float:
+            #     sqltype = 'float'
+            # else:
+            #     print "ERROR: Unrecognised type: %r" % valias_type
+            #     sys.exit(1)
 
     fspec['sqltype_new'] = sqltype
 
@@ -662,6 +670,11 @@ else:
 
 # Fetches rows as tuples
 orows = cursor.fetchall()
+
+# NOTE: 2013-02-07 - debugging: run with 100 rows
+debug = False
+if debug:
+    orows = orows[:100]
 # Keep everything as tuples for now so 'immutable'
 ocols = zip(*orows)
 ocols_dict = dict(zip(fields, ocols))
@@ -910,16 +923,9 @@ for field, col in cols_dict.items():
     # DEBUGGING: 2012-08-20 -
     # if 'valias' in fspec:
     #   print field, fspec['valias']
+    # import pdb; pdb.set_trace()
     for index, item in enumerate(col):
         value = item['raw']
-        # automatically transfer primary key values without further checks
-        # if field in list(pkeys):
-        #     if isinstance(value, str):
-        #         value = value.lower()
-        #     item['clean'] = value
-        #     item['unavailable'] = False
-        #     continue
-        # for everything else then try and clean
         reported_na = False
         # print "\n", item['clean']
 
@@ -945,13 +951,6 @@ for field, col in cols_dict.items():
             value = regex.sub(fspec['substitute']['replace'], str(value))
 
         # where value aliases are provided
-        # if 'valias' in fspec:
-        #     if value in fspec['valias']:
-        #         value = fspec['valias'][value]
-                # DEBUGGING: 2012-08-24 - type conversion already done: don't need ...
-                # if (fspec['sqltype_new'] in ['tinyint', 'smallint']
-                #     and value.isdigit()):
-                #     value = int(value)
         # CHANGED: 2012-09-14 - now converts valias dict as needed: untested
         # CHANGED: 2012-09-18 - now handles multiple valias types
         if 'valias' in fspec or 'valiases' in fspec:
@@ -960,14 +959,14 @@ for field, col in cols_dict.items():
                 for v in fspec['valiases']:
                     if tab_name in v['valias_tables']:
                         valias = v['valias']
-            else:
+            # CHANGED: 2013-02-07 - now uses valias if a specific table valias not available
+            if valias is None and 'valias' in fspec:
                 valias = fspec['valias']
             if valias:
                 valias_dict = dict((str(i[0]).lower(), i[1]) if isinstance(i[0], str)
                     else (i[0], i[1]) for i in valias.items())
                 if value in valias_dict:
                     value = valias_dict[value]
-
 
         if value == None:
             item['empty'] = True
@@ -1106,7 +1105,9 @@ for field, col in cols_dict.items():
     #     checks.append(essential_chk)
     if checks:
         for chk in fspec['checks']:
-            # print fspec
+            # CHANGED: 2013-02-08 - don't use legal values if there is an alias
+            if chk['type'] == 'legal_vals' and ('valias' in fspec or 'valiases' in fspec):
+                chk['type'] = 'legal_alias'
             col, success = run_fchk(col, chk)
 
         # cols_dict[field] = tuple(col)
