@@ -1,0 +1,5 @@
+# List of SQL statements for individualised corrections to data with an audit trail
+# Corrections will be applied after creation of the _ix table
+# Hence table will already be correctly named and indexed
+# Corrections to key fields will need to be handled on a case-by-case basis
+# These will modify the import table and run before pulling the data
