@@ -707,7 +707,7 @@
     id_dvr_long: hrhyth
     headsfinal: hrhyt
   valias: {0: 1, 1: 0, s: 1, o: 0} # (SPOT)light tick if non-sinus hence 0->1 and 1 -> 0
-  vallab: {1: sinus, 0: non-sinus}
+  vallab: {1: Sinus, 0: Non-sinus}
   checks:
   -
     type: legal_vals
@@ -1200,6 +1200,15 @@
     msg: Illegal response
     response: drop_field
 -
+  fname: rxcvs
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Cardiovascular support"
+  vallab:
+    0: "None"
+    1: "Volume resuscitation"
+    2: "Inotropes or vasopressors"
+-
   fname: rxcvs_dose
   sqltype: float
   varlab: Highest vasopressor dose
@@ -1285,6 +1294,15 @@
     msg: Illegal response
     response: drop_field
 -
+  fname: rx_resp
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Respiratory support"
+  vallab:
+    0: "None"
+    1: "Supplemental oxygen"
+    2: "Non-invasive ventilation"
+-
   fname: rxlimits
   sqltype: tinyint
   varlab: Treatment limitation order
@@ -1353,6 +1371,8 @@
   fname: rxrrt
   sqltype: tinyint
   varlab: Renal replacement therapy flag
+  tablerowlabel:
+    latex: "Renal replacement therapy"
   talias:
     idvisit: ccmdsrenal
     headsfinal: dialysis
@@ -1399,7 +1419,7 @@
   sqltype: char
   varlab: Clinical source of sepsis
   tablerowlabel:
-    latex: Likely source of sepsis
+    latex: Reported source of sepsis
   talias: {headsfinal: sepsite}
   valias:
     A: 1
@@ -1427,6 +1447,8 @@
   fname: sex
   sqltype: char
   varlab: Sex
+  tablerowlabel:
+    latex: Sex
   talias: {idpid: gender, lightPID: sex, headsfinal: sex}
   valias:
     M: 1
@@ -1441,6 +1463,9 @@
   sqltype: tinyint
   tablerowlabel:
     latex: Male sex
+  vallab:
+    0: Female
+    1: Male
 -
   fname: sitecode
   sqltype: char
@@ -3571,6 +3596,12 @@
   primaryfields: [hrate, bpsys, spo2, rxfio2, temperature, rrate, avpu, gcst]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       derived_var = 0
       # Respiratory rate
       if rrate is None:
@@ -3644,6 +3675,12 @@
   primaryfields: [hrate, bpsys, spo2, rxfio2, temperature, rrate, avpu, gcst]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       news_score = 0
       news_red = False
       # Respiratory rate
@@ -3759,11 +3796,17 @@
     - gcst
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       # derive intermediate vars uvol24 and pf
       if urine_period is not None and v_timestamp is not None and urine_vol is not None:
-        if urine_period in ['a', 'b', 'c']:
-            uvol24 = urine_vol / {'a':1,'b':6,'c':12}[urine_period] * 24
-        elif urine_period == 'd' and v_timestamp.hour != 0:
+        if urine_period in [1, 2, 3]:
+            uvol24 = urine_vol / {1:1,2:6, 3:12}[urine_period] * 24
+        elif urine_period == 4 and v_timestamp.hour != 0:
             uvol24 = urine_vol / v_timestamp.hour * 24
       else:
           uvol24 = None
@@ -3944,6 +3987,12 @@
   primaryfields: [rxfio2, fio2u, fio2]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       # FiO2 standardised
       fio2_std = None
       if rxfio2 == 'r':
@@ -3994,6 +4043,12 @@
   primaryfields: [pao2, abgfio2, rxfio2, fio2u, fio2]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       # ensure that one var is float else get integer division in python 2.x
       result = None
       if abgfio2 != None and pao2 != None:
@@ -4058,6 +4113,12 @@
   primaryfields: [spo2, rxfio2, fio2u, fio2]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       # FiO2 standardised
       fio2_std = None
       if rxfio2 == 'r':
@@ -4131,6 +4192,18 @@
     - avpu
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
+      # CHANGED: 2013-02-26 - since rxcvs_sofa is now an integer code
+      rxcvs_sofa_dict = {0: 'a', 1:'b', 2:'c', 3:'d', 4:'e', 5:'g'}
+      if rxcvs_sofa in rxcvs_sofa_dict:
+        rxcvs_sofa = rxcvs_sofa_dict[rxcvs_sofa]
+      else:
+        rxcvs_sofa = ''
       # derive intermediate vars uvol24 and pf
       # MAP
       if bpsys != None and bpdia != None:
@@ -4297,6 +4370,12 @@
   primaryfields: [pao2, abgfio2, fio2, fio2u, rxfio2, spo2]
   code:
     python: |
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
       # PF ratio
       if (pao2 is not None) and (abgfio2 is not None):
           # ensure that one var is float else get integer division in python 2.x
@@ -4420,6 +4499,12 @@
   primaryfields: [bpsys, bpdia, rxcvs_sofa, rxcvs_drug, rxcvs_dose]
   code:
     python: |
+      # CHANGED: 2013-02-26 - since rxcvs_sofa is now an integer code
+      rxcvs_sofa_dict = {0: 'a', 1:'b', 2:'c', 3:'d', 4:'e', 5:'g'}
+      if rxcvs_sofa in rxcvs_sofa_dict:
+        rxcvs_sofa = rxcvs_sofa_dict[rxcvs_sofa]
+      else:
+        rxcvs_sofa = ''
       if bpsys != None and bpdia != None:
         bpmap = round(bpdia + ((bpsys - bpdia)/3))
       else:
@@ -4488,9 +4573,9 @@
     python: |
       # urine volume per hour - (SPOT)light code
       if urine_period is not None and v_timestamp is not None and urine_vol is not None:
-        if urine_period in ['a', 'b', 'c']:
-            uvol24 = urine_vol / {'a':1,'b':6,'c':12}[urine_period] * 24
-        elif urine_period == 'd' and v_timestamp.hour != 0:
+        if urine_period in [1, 2, 3]:
+            uvol24 = urine_vol / {1:1, 2:6, 3:12}[urine_period] * 24
+        elif urine_period == 4 and v_timestamp.hour != 0:
             uvol24 = urine_vol / v_timestamp.hour * 24
       else:
           uvol24 = None
@@ -4552,19 +4637,35 @@
     - rxcvs_sofa
   code:
     python: |
-      sirs = False
+      # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
+      rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
+      if rxfio2 in rxfio2_dict:
+        rxfio2 = rxfio2_dict[rxfio2]
+      else:
+        rxfio2 = ''
+      # CHANGED: 2013-02-26 - since rxcvs_sofa is now an integer code
+      rxcvs_sofa_dict = {0: 'a', 1:'b', 2:'c', 3:'d', 4:'e', 5:'g'}
+      if rxcvs_sofa in rxcvs_sofa_dict:
+        rxcvs_sofa = rxcvs_sofa_dict[rxcvs_sofa]
+      else:
+        rxcvs_sofa = ''
+      sirs = 0
       if temperature > 38.3:
-        sirs = True
+        sirs = sirs + 1
       if temperature < 36 and temperature is not None:
-        sirs = True
+        sirs = sirs + 1
       if hrate > 90:
-        sirs = True
+        sirs = sirs + 1
       if rrate > 20:
-        sirs = True
+        sirs = sirs + 1
       if wcc > 12:
-        sirs = True
+        sirs = sirs + 1
       if wcc < 4 and wcc is not None:
+        sirs = sirs + 1
+      if sirs >= 2:
         sirs = True
+      else:
+        sirs = False
       # PF ratio
       if (pao2 is not None) and (abgfio2 is not None):
           # ensure that one var is float else get integer division in python 2.x
@@ -4624,9 +4725,9 @@
         organ_dysfunction = True
       # urine volumer per hour
       if urine_period is not None and v_timestamp is not None and urine_vol is not None:
-        if urine_period in ['a', 'b', 'c']:
-            uvol24 = urine_vol / {'a':1,'b':6,'c':12}[urine_period] * 24
-        elif urine_period == 'd' and v_timestamp.hour != 0:
+        if urine_period in [1, 2, 3]:
+            uvol24 = urine_vol / {1:1, 2:6, 3:12}[urine_period] * 24
+        elif urine_period == 4 and v_timestamp.hour != 0:
             uvol24 = urine_vol / v_timestamp.hour * 24
       else:
           uvol24 = None
@@ -4917,6 +5018,9 @@
 -
   fname: imscore
   sqltype: tinyint
+  tablerowlabel:
+    latex: "1\\textsuperscript{st} 24 hr ICNARC physiology score"
+  stataformat: "%9.1fc"
   varlab: CMP ICNARC physiology score
   source: CMPD
 -
@@ -5292,7 +5396,8 @@
   fname: periarrest
   sqltype: tinyint
   tablerowlabel:
-    latex: "In clinical extremis"
+    latex: "Reported to be peri-arrest"
+  vallab: *label_truefalse
   source: stata_derived
 -
   fname: v_decision
@@ -5312,6 +5417,11 @@
     latex: "Hospital admissions"
   unitlabel:
     latex: "thousands"
+  vallab:
+    0: "0--30"
+    1: "30--60"
+    2: "60--90"
+    3: ">90"
   stataformat: "%9.1fc"
   source: stata_derived
   notes: |
@@ -5323,6 +5433,10 @@
     latex: "Hospital emergency casemix"
   unitlabel:
     latex: "\\%"
+  vallab:
+    0: "0--29\\%"
+    1: "30--39\\%"
+    2: "40--100\\%"
   stataformat: "%9.1fc"
   source: stata_derived
 -
@@ -5365,6 +5479,7 @@
   sqltype: tinyint
   tablerowlabel:
     latex: "Delayed referral to critical care"
+  vallab: *label_truefalse
   source: stata_derived
 -
   fname: patients_perhesadmx
@@ -5405,5 +5520,79 @@
     latex: "hrs"
   stataformat: "%9.1fc"
   source: stata_derived
+-
+  fname: early4
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Level 2 or 3 - delivered within 4 hrs"
+  source: stata_derived
+-
+  fname: icu_recommend
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Level 2 or 3 - recommended"
+  source: stata_derived
+-
+  fname: icu_accept
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Level 2 or 3 - accepted"
+  source: stata_derived
+-
+  fname: admx_elsurg_low
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "High emergency case mix"
+  source: stata_derived
+  notes: ">90\\% emergency admissions with respect to CMP case mix"
+-
+  fname: admx_low
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Low critical care admission rate"
+  source: stata_derived
+  notes: at unit level (<50 CMP admissions/month)
 
+-
+  fname: decjanfeb
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Winter (Dec/Jan/Feb)"
+  source: stata_derived
+-
+  fname: satsunmon
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Weekend (Sat/Sun/Mon)"
+  source: stata_derived
+-
+  fname: small_unit
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Critical Care with <10 beds"
+  source: stata_derived
+-
+  fname: tofd
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Shift time"
+  vallab:
+    0: Reference
+    1: Early shift (0500-0959)
+    2: Late shift (1500-1959)
+  source: stata_derived
+-
+  fname: imscore_p50
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "Median ICNARC score"
+  source: stata_derived
+  notes: Median 1st 24hr ICNARC Acute Physiology Score for the Critical Care Unit
+-
+  fname: imscore_p50_high
+  sqltype: tinyint
+  tablerowlabel:
+    latex: "High admission severity"
+  source: stata_derived
+  notes: Median 1st 24hr ICNARC Acute Physiology Score for the Critical Care Unit
 
