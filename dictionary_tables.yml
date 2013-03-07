@@ -77,16 +77,20 @@
       - sha
       - hes_code
       - hes_name
-      - hes_fce
       - hes_admissions
       - hes_emergencies
       - hes_daycase
-      - hes_beddays
-      - hes_los_mean
-      - hes_los_median
   pkey: [hes_code]
   notes: |
     Abstracted from 2010-2011 Hospital episode statistics
+    CHANGED: 2013-03-06 - 
+    - added Northern Ireland 2011-2012
+    - added Wales 2010
+    Simplifed table and only focused on 
+      - admissions
+      - daycases (so you can calculate overnights)
+      - emergencies (for case mix purposes)
+    Data is at trust level for England and Wales but hospital for Northern Ireland
   source: HES
 
 #  ===============================================
@@ -1589,13 +1593,9 @@
       h.sha,
       h.hes_code,
       m.hospname AS dorisname,
-      h.hes_fce,
       h.hes_admissions,
       h.hes_emergencies,
       h.hes_daycase,
-      h.hes_beddays,
-      h.hes_los_mean,
-      h.hes_los_median,
       s.icode
       FROM hes_providers AS h
       LEFT JOIN metasiteunit AS m
@@ -1607,8 +1607,8 @@
   postflight:
   notes: |
     - produces a table of all sites with HES data
-    - no information on Welsh, or Northern Ireland
     - rename hospname to dorisname (not sitename else it is abbreviated)
+    - restricted fields to just admissions / daycase / emergencies
 -
   tablename: sites_within_cmpd
   type: derived
@@ -1756,7 +1756,6 @@
       hes.hes_admissions,
       hes.hes_daycase,
       hes.hes_emergencies,
-      hes.hes_los_mean,
       s.ccot,
       s.ccot_days,
       s.ccot_start,
