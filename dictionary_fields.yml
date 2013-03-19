@@ -31,7 +31,7 @@
       response: drop_field
 -
   fname: v_abx
-  sqltype: char
+  sqltype: tinyint
   sqllen: 1
   varlab: Visit antibiotic management
   tablerowlabel:
@@ -135,7 +135,7 @@
       response: drop_field # set field to NULL or missing
 -
   fname: avpu
-  sqltype: char
+  sqltype: tinyint
   varlab: AVPU score - modified
   talias:
     headsfinal: avpu
@@ -973,7 +973,7 @@
   talias: {headsfinal: notes}
 -
   fname: abgunit
-  sqltype: char
+  sqltype: tinyint
   varlab: Arterial blood gas units
   valias:
     k: 1
@@ -1110,7 +1110,7 @@
     response: drop_field
 -
   fname: protocol_deviation
-  sqltype: char
+  sqltype: tinyint
   sqllen: 16
   varlab: Site level protocol deviation
   talias: {headsfinal: eventtype}
@@ -1123,7 +1123,8 @@
     PoorCompliance: 6
     ReferralPattern: 7
     Backfilling: 8
-    PossReportBias: 8
+    PossReportBias: 9
+    CMPDincomplete: 10
   vallab:
     1: Only septic cases reported
     2: Only outreach cases reported
@@ -1132,7 +1133,9 @@
     5: Data collection suspended
     6: Problems with protocol compliance
     7: Atypical referral pattern
-    8: Possible Reporting Bias
+    8: Backfilling
+    9: Possible Reporting Bias
+    10: CMPD incomplete
   notes: Site level flag when reported or assessed change in protocol
 -
   fname: rrate
@@ -1155,7 +1158,7 @@
       response: drop_field
 -
   fname: rx_visit
-  sqltype: char
+  sqltype: tinyint
   varlab: Visit content
   tablerowlabel:
     latex: Visit interventions
@@ -1176,7 +1179,7 @@
     response: drop_field
 -
   fname: rxcvs_sofa
-  sqltype: char
+  sqltype: tinyint
   varlab: Modified CVS SOFA score
   talias: {headsfinal: cvssupp}
   valias:
@@ -1415,8 +1418,17 @@
      3: Likely
      4: Very Likely
 -
+  fname: sepsis1
+  sqltype: tinyint
+  varlab: Reported sepsis
+  tablerowlabel:
+    latex: Reported sepsis
+  vallab:
+    0: Unlikely
+    1: Likely
+-
   fname: sepsis_site
-  sqltype: char
+  sqltype: tinyint
   varlab: Clinical source of sepsis
   tablerowlabel:
     latex: Reported source of sepsis
@@ -1445,7 +1457,7 @@
     10: Source uncertain
 -
   fname: sex
-  sqltype: char
+  sqltype: tinyint
   varlab: Sex
   tablerowlabel:
     latex: Sex
@@ -1726,7 +1738,7 @@
     response: drop_field
 -
   fname: urine_period
-  sqltype: char
+  sqltype: tinyint
   varlab: Urine measurement period
   talias: {headsfinal: urvoltime}
   valias:
@@ -1808,7 +1820,7 @@
   notes: poorly reported so percentage frequently more than 100
 -
   fname: v_arrest
-  sqltype: char
+  sqltype: tinyint
   varlab: Arrest status at visit
   talias: {headsfinal: vstatus}
   valias:
@@ -2004,7 +2016,7 @@
   talias: {headsfinal: vdelay}
 -
   fname: v_disposal
-  sqltype: char
+  sqltype: tinyint
   varlab: Patient disposal at visit end
   talias: {headsfinal: followup}
   valias:
@@ -2081,7 +2093,7 @@
   varlab: Ward housing patient at time of visit
 -
   fname: vitals
-  sqltype: char
+  sqltype: tinyint
   varlab: Frequency of nursing observations
   tablerowlabel:
     latex: Nursing observations
@@ -4975,6 +4987,13 @@
   varlab: HES FCE bed days
   notes: FCE are Finished Consultant Episodes
 -
+  fname: hes_genmed
+  sqltype: int
+  source: HES
+  varlab: HES Average available general medical beds
+  notes: |
+    - chosen as a more consistent estimator of ward patients than total beds?
+-
   fname: sites_per_trust
   sqltype: tinyint
   varlab: HES sites per trust
@@ -5451,13 +5470,13 @@
   fname: out_of_hours
   sqltype: tinyint
   tablerowlabel:
-    latex: "Referred out-of-hours"
+    latex: "Out-of-hours (7pm--7am)"
   source: stata_derived
 -
   fname: weekend
   sqltype: tinyint
   tablerowlabel:
-    latex: "Referred on the weekend"
+    latex: "Weekend (Saturday--Sunday)"
   source: stata_derived
 -
   fname: icnarc0
@@ -5487,7 +5506,11 @@
   tablerowlabel:
     latex: "Ward referrals to ICU"
   unitlabel:
-    latex:  "standardised"
+    latex:  "per 1000 hospital admissions"
+  vallab:
+    0: "<0.5"
+    1: "0.5-1.0"
+    2: ">1.0"
   source: stata_derived
 -
   fname: sepsis_b
@@ -5552,12 +5575,27 @@
     latex: "Low critical care admission rate"
   source: stata_derived
   notes: at unit level (<50 CMP admissions/month)
-
+-
+  fname: admx_p50
+  sqltype: float
+  tablerowlabel:
+    latex: "Critical care admissions"
+  unitlabel:
+    latex: "Median per month"
+  source: stata_derived
+  notes: at unit level
+-
+  fname: admx_elsurg
+  sqltype: float
+  tablerowlabel:
+    latex: "Elective surgical case mix"
+  source: stata_derived
+  notes: at unit level
 -
   fname: decjanfeb
   sqltype: tinyint
   tablerowlabel:
-    latex: "Winter (Dec/Jan/Feb)"
+    latex: "Winter (Dec--Feb)"
   source: stata_derived
 -
   fname: satsunmon
@@ -5582,17 +5620,49 @@
     2: Late shift (1500-1959)
   source: stata_derived
 -
-  fname: imscore_p50
+  fname: hour
   sqltype: tinyint
   tablerowlabel:
+    latex: "Time"
+  vallab:
+    0: "0000--0359"
+    4: "0400--0759"
+    8: "0800--1159"
+    12: "1200--1559"
+    16: "1600--1959"
+    20: "2000--2359"
+  source: stata_derived
+-
+  fname: imscore_p50
+  sqltype: float
+  tablerowlabel:
     latex: "Median ICNARC score"
+  unitlabel:
+    latex: "Monthly median"
   source: stata_derived
   notes: Median 1st 24hr ICNARC Acute Physiology Score for the Critical Care Unit
 -
-  fname: imscore_p50_high
+  fname: sepsis_dx
   sqltype: tinyint
   tablerowlabel:
-    latex: "High admission severity"
+    latex: "Reported sepsis diagnosis"
   source: stata_derived
-  notes: Median 1st 24hr ICNARC Acute Physiology Score for the Critical Care Unit
+  vallab:
+    0: Not septic
+    1: Unspecified sepsis
+    2: GU sepsis
+    3: GI sepsis
+    4: Chest sepsis
+-
+  fname: recent_admx_count
+  sqltype: tinyint
+  varlab: Number of ICU admissions in 4 hours prior to visit timestamp
+-
+  fname: recent_admx_time
+  sqltype: tinyint
+  varlab: Time since last ICU admissions
+  units: minutes
+  notes: |
+    - censored at 12 hours
+    - counting back from ward visit timestamp
 
