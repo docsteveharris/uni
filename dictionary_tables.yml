@@ -80,13 +80,14 @@
       - hes_admissions
       - hes_emergencies
       - hes_daycase
+      - hes_genmed
   pkey: [hes_code]
   notes: |
     Abstracted from 2010-2011 Hospital episode statistics
-    CHANGED: 2013-03-06 - 
+    CHANGED: 2013-03-06 -
     - added Northern Ireland 2011-2012
     - added Wales 2010
-    Simplifed table and only focused on 
+    Simplifed table and only focused on
       - admissions
       - daycases (so you can calculate overnights)
       - emergencies (for case mix purposes)
@@ -1584,6 +1585,50 @@
     - temperature_range_low
     - lactate_range_high
 -
+  tablename: heads_previous_admission
+  type: derived
+  pkey: [icode, idvisit]
+  preflight: |
+    DROP TEMPORARY TABLE IF EXISTS tt;
+    CREATE TEMPORARY TABLE tt ENGINE MEMORY
+      SELECT icode, daicu, taicu FROM tailsfinal;
+    ALTER TABLE tt ADD INDEX (icode);
+    ALTER TABLE tt ADD COLUMN icu_timestamp TIMESTAMP;
+    UPDATE tt SET icu_timestamp = TIMESTAMP(daicu, taicu);
+    ALTER TABLE tt ADD INDEX (icu_timestamp);
+    DROP TEMPORARY TABLE IF EXISTS hh;
+    CREATE TEMPORARY TABLE hh ENGINE MEMORY
+      SELECT icode, idvisit, v_timestamp FROM headsfinal;
+    ALTER TABLE hh ADD INDEX (v_timestamp);
+    ALTER TABLE hh ADD INDEX (icode);
+  sql_select: |
+    DROP TABLE IF EXISTS heads_previous_admission;
+    CREATE TABLE heads_previous_admission
+    SELECT
+      h.icode,
+      h.idvisit,
+      h.`v_timestamp`,
+      IF(TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) IN (0,1,2,3,4),
+        count(t.icode),0)
+        AS recent_admx_count,
+      MIN(TIMESTAMPDIFF(MINUTE,t.icu_timestamp,h.v_timestamp))
+        AS recent_admx_time
+    FROM
+     hh AS h
+    LEFT JOIN
+     tt AS t
+    ON
+      h.icode = t.icode
+      AND
+      TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) < 12
+      AND
+      TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) > 0
+    GROUP BY h.idvisit;
+  postflight:
+  notes: |
+    - find the time of the preceding admission with respect to the time of visit
+    - counts the number of admissions in the last 4 hours
+-
   tablename: sites_within_hes
   type: derived
   pkey: [hes_code, icode]
@@ -1596,6 +1641,7 @@
       h.hes_admissions,
       h.hes_emergencies,
       h.hes_daycase,
+      h.hes_genmed,
       s.icode
       FROM hes_providers AS h
       LEFT JOIN metasiteunit AS m
@@ -1734,7 +1780,7 @@
     /* Work out heads to tails ratio per site */
     DROP TEMPORARY TABLE IF EXISTS ht_ratio;
     CREATE TEMPORARY TABLE ht_ratio
-      SELECT 
+      SELECT
         q.icode,
         q.namesite,
         SUM(q.count_patients)/SUM(q.count_core_eligible) AS ht_ratio,
@@ -1756,6 +1802,7 @@
       hes.hes_admissions,
       hes.hes_daycase,
       hes.hes_emergencies,
+      hes.hes_genmed,
       s.ccot,
       s.ccot_days,
       s.ccot_start,
@@ -1825,31 +1872,23 @@
   pkey: [icnno, adno]
   sitekey: icode
   preflight: |
-    DROP TEMPORARY TABLE IF EXISTS qq_icode_month;
-    CREATE TEMPORARY TABLE qq_icode_month
-      SELECT icode, studymonth,
-      round(AVG(match_quality_by_month)) AS site_quality_by_month
+    DROP TEMPORARY TABLE IF EXISTS q;
+    CREATE TEMPORARY TABLE q
+      SELECT
+        icode,
+        studymonth,
+        site_quality_by_month,
+        site_quality_q1,
+        studymonth_protocol_problem,
+        studymonth_allreferrals,
+        cmpd_month_miss,
+        cmp_admx_permonth,
+        match_quality_by_site,
+        count_patients,
+        count_all_eligible
       FROM lite_summ_monthly
       GROUP BY icode, studymonth;
-    SELECT * FROM qq_icode_month;
-    DROP TEMPORARY TABLE IF EXISTS qq_icode_q1;
-    CREATE TEMPORARY TABLE qq_icode_q1
-      SELECT icode, round(AVG(site_quality_by_month)) AS site_quality_q1
-          FROM qq_icode_month WHERE studymonth IN (1,2,3) GROUP BY icode;
-    SELECT * FROM qq_icode_q1;
-    DROP TEMPORARY TABLE IF EXISTS qq_site_quality;
-    CREATE TEMPORARY TABLE qq_site_quality
-      SELECT
-      q1.icode,
-      q1.studymonth,
-      q1.site_quality_by_month,
-      q2.site_quality_q1
-      FROM qq_icode_month AS q1
-      LEFT JOIN qq_icode_q1 AS q2
-    ON q1.icode=q2.icode
-    GROUP BY q1.icode, q1.studymonth;
-    ALTER TABLE qq_site_quality ADD INDEX(icode, studymonth);
-    SELECT * FROM qq_site_quality;
+    ALTER TABLE q ADD INDEX(icode, studymonth);
     -- ALTER TABLE headsfinal DROP INDEX icode_studymonth;
     -- ALTER TABLE headsfinal ADD INDEX icode_studymonth (icode,studymonth) ;
     -- ALTER TABLE headsfinal DROP INDEX idvisit;
@@ -1858,8 +1897,6 @@
     -- ALTER TABLE tailsfinal_elgdate_ix ADD INDEX idvisit (idvisit) ;
   sql_select: |
    SELECT
-      q.site_quality_q1,
-      q.site_quality_by_month,
       t.icode,
       t.studymonth,
       t.dorisname,
@@ -1867,6 +1904,15 @@
       t.adno,
       t.matchtype,
       t.match_is_ok,
+      q.site_quality_q1,
+      q.site_quality_by_month,
+      q.studymonth_protocol_problem,
+      q.studymonth_allreferrals,
+      q.cmpd_month_miss,
+      q.cmp_admx_permonth,
+      q.match_quality_by_site,
+      q.count_patients,
+      q.count_all_eligible,
       t.idpcode,
       t.dob,
       t.ethnicity,
@@ -1923,7 +1969,6 @@
       t.ltot,
       t.hbl,
       t.imscore,
-      t.im3prob,
       t.ap2aps,
       t.ap2score,
       t.ap2probuk,
@@ -1956,7 +2001,7 @@
       h.lite_open,
       h.lite_close,
       h.elgprotocol,
-      h.pro_or_retro,
+      h.allreferrals,
       h.possible_duplicate,
       h.filled_fields_count,
       h.v_ccmds,
@@ -2015,7 +2060,7 @@
     FROM tailsFinal_ix AS t
      LEFT JOIN headsfinal AS h
       ON t.idvisit = h.idvisit
-    LEFT JOIN qq_site_quality AS q
+    LEFT JOIN q
       ON t.icode = q.icode AND t.studyMonth = q.studyMonth
     WHERE t.icode IS NOT NULL AND t.elgdate = 1 AND t.elgemx = 1
       AND (t.elgward = 1 OR t.elgoward = 1 OR t.elgtrans = 1)
