@@ -39,8 +39,8 @@ warnings.filterwarnings('error', '.*Out of range.*')
 warnings.filterwarnings('error', '.*invalid.*')
 
 # TODO: 2012-08-17 - switch back to global library files
-sys.path.remove('/Users/steve/usr/local/lib')
-sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
+# sys.path.remove('/Users/steve/usr/local/lib')
+# sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
 import myspot   # user written spot functions
 
 # print os.getcwd()

@@ -1,0 +1,360 @@
+
+  ___  ____  ____  ____  ____ (R)
+ /__    /   ____/   /   ____/
+___/   /   /___/   /   /___/   12.1   Copyright 1985-2011 StataCorp LP
+  Statistics/Data Analysis            StataCorp
+                                      4905 Lakeway Drive
+     MP - Parallel Edition            College Station, Texas 77845 USA
+                                      800-STATA-PC        http://www.stata.com
+                                      979-696-4600        stata@stata.com
+                                      979-696-4601 (fax)
+
+Single-user 4-core Stata perpetual license:
+       Serial number:  50120520909
+         Licensed to:  Timberlake
+                       Timberlake Consultants
+
+Notes:
+      1.  (-v# option or -set maxvar-) 5000 maximum variables
+      2.  Command line editing disabled
+      3.  Stata running in batch mode
+
+
+running /Users/steve/Library/Application Support/Stata/profile.do ...
+
+. do /Users/steve/Data/spot_reports/vcode/anMasterBasic.do 52s 
+
+. *  ===============================================================
+. *  = do file that will include all other files to produce report =
+. *  ===============================================================
+. 
+. /*
+> You will probably have a few different versions of this file
+> - for all referrals sites
+> - for all admissions sites
+> */
+. 
+. *  ==================================================================
+. *  = Define global variables that will be used by all do files here =
+. *  ==================================================================
+. cd /users/steve/data/spot_reports/vcode
+/Users/steve/Data/spot_reports/vcode
+
+. if "`1'" == "" {
+.         global this_icode 45s
+. }
+
+. else {
+.         global this_icode `1'
+. }
+
+. global clean_run 0
+
+. 
+. 
+. *  ========================
+. *  = Prep data files here =
+. *  ========================
+. /*
+> You might want to rely on data files from the subprojects. In which case it w
+> ill be more efficient to prepare them once here using the cr_* files from tha
+> t specific project
+> */
+. if $clean_run {
+.         // spot_ward
+.         cd ~/data/spot_ward/vcode
+.         qui include cr_sites.do
+.         qui include cr_working.do
+.         qui include cr_preflight.do
+.         cd ~/data/spot_reports/vcode
+.         // spot_early
+.         cd ~/data/spot_early/vcode
+.         qui include cr_working.do
+.         qui include cr_preflight.do
+.         cd ~/data/spot_reports/vcode
+. }
+
+. 
+. 
+. *  ============================
+. *  = Set up report dictionary =
+. *  ============================
+. // Set up the text file that you will append data to
+. cd ~/data/spot_reports/vcode
+/Users/steve/Data/spot_reports/vcode
+
+. include cr_dictionary_report.do
+
+. *  =======================================================
+. *  = Prep text file for YAML formatted report dictionary =
+. *  =======================================================
+. 
+. 
+. cap file close dreport
+
+. file open dreport using dictionary_report.txt, write replace
+
+. file write dreport "# YAML formated report dictionary for (SPOT)light" _n
+
+. file write dreport "# Code designed 130218" _n
+
+. file write dreport "# Uses the 2 spaces per tab convention" _n
+
+. file write dreport _n _n
+
+. 
+. // close file in now in case previous run did not close properly
+. 
+. 
+. *  ==========================================
+. *  = Now run the analyses that will be used =
+. *  ==========================================
+. 
+. // Append basic site data
+. include an_site.do
+
+.  * ==========================================
+.  * = Pull site level data needed for report =
+.  * ==========================================
+. 
+. clear
+
+. use ~/Data/spot_reports/data/data_ward/sites.dta
+
+. keep if icode == "$this_icode"
+(96 observations deleted)
+
+. assert _N == 1
+
+. 
+. // only run this command when you are debugging this file alone
+. * include cr_dictionary_report.do
+. 
+. file write dreport "analysis:" _n
+
+. file write dreport "  name: site" _n
+
+. file write dreport "  dofile: an_site.do" _n
+
+. 
+. file write dreport "  scalars:" _n
+
+. local dorisname = proper(dorisname[1])
+
+. file write dreport "    dorisname: `dorisname'" _n
+
+. local hes_admissions = hes_admissions[1]
+
+. file write dreport "    hes_admissions: `hes_admissions'" _n
+
+. 
+. // only run this command when you are debugging this file alone
+. * file close dreport
+. 
+. 
+. 
+. include an_plot_sites.do
+
+. *  ========================
+. *  = Draw sites on GB map =
+. *  ========================
+. 
+. 
+. /*
+> NOTE: 2013-02-21 - beware doing this with the highest resolution files
+> The pdf file subsequently produced by stata is massive and slow to open
+> CHANGED: 2013-02-22 - modified to now highlight one site for site report
+> */
+. 
+. clear
+
+. global cleanrun = 0
+
+. global filename ne_10m_admin_0_map_subunits
+
+. 
+. if $cleanrun {
+.         // load sites final
+.         local ddsn mysqlspot
+.         local uuser stevetm
+.         local ppass ""
+.         odbc load, exec("SELECT * FROM spot.sitesFinal")  dsn("`ddsn'") user(
+> "`uuser'") pass("`ppass'") lowercase sqlshow clear
+.         keep icode namesite site_pcode protocol_referrals
+.         rename site_pcode site_postcode
+.         gen allreferrals = protocol_referrals == "Prospective"
+.         drop protocol_referrals
+.         file open myvars using ../data/scratch/vars.yml, text write replace
+.         foreach var of varlist * {
+  2.                 di "- `var'" _newline
+  3.                 file write myvars "- `var'" _newline
+  4.         }
+.         file close myvars
+.         shell ../ccode/label_stata_fr_yaml.py "../data/scratch/vars.yml" "../
+> local/lib_phd/dictionary_fields.yml"
+.         capture confirm file ../data/scratch/_label_data.do
+.         if _rc == 0 {
+.                 include ../data/scratch/_label_data.do
+.                 shell  rm ../data/scratch/_label_data.do
+.                 shell rm ../data/scratch/myvars.yml
+.         }
+.         else {
+.                 di as error "Error: Unable to label data"
+.                 exit
+.         }
+.         compress
+.         d
+.         cap drop pcode
+.         gen pcode = lower(subinstr(site_postcode, " ", "",.))
+. 
+.         save ../data/data_spotlight/sites_for_maps.dta, replace
+. 
+.         //  =============================================================
+.         //  = Prepare CSV files of postcodes and eastings and northings =
+.         //  =============================================================
+.         // this is slow: and only needs to be done once
+.         local clean_run_csv 0
+.         if `clean_run_csv' {
+.                 local codepo_dir "/Users/steve/Pictures/mapping/ordnance_surv
+> ey/codepo_gb/Data/CSV/"
+.                 ! ls `codepo_dir'*.csv > ../data/scratch/filelist.txt
+.                 cap file close f
+.                 file open f using ../data/scratch/filelist.txt, read
+.                 file read f line
+.                 clear
+.                 insheet pc pq ea no cy rh lh cc dc wc using `line'
+.                 foreach var in pc cy rh lh cc dc wc {
+  2.                         cap confirm string var `var'
+  3.                         if _rc {
+  4.                                 tostring `var', replace force
+  5.                         }
+  6.                 }
+.                 save ../data/data_spotlight/codepo.dta, replace
+.                 drop _all
+.                 file read f line
+.                 while r(eof)==0 {
+  2.                         insheet pc pq ea no cy rh lh cc dc wc using `line'
+  3.                         foreach var in pc cy rh lh cc dc wc {
+  4.                                 cap confirm string var `var'
+  5.                                 if _rc {
+  6.                                         tostring `var', replace force
+  7.                                 }
+  8.                         }
+  9.                         append using ../data/data_spotlight/codepo.dta
+ 10.                         save ../data/data_spotlight/codepo.dta, replace
+ 11.                         drop _all
+ 12.                         file read f line
+ 13.                 }
+.                 cap file close f
+.         * NOTE: 2013-02-21 - there are 1.6 million UK postcodes
+.         use ../data/data_spotlight/codepo.dta, clear
+.         cap drop pcode
+.         gen pcode = lower(subinstr(pc, " ", "",.))
+.         save ../data/data_spotlight/codepo.dta, replace
+.         }
+. 
+.         // merge in eastings and northings
+.         use ../data/data_spotlight/sites_for_maps.dta, clear
+.         merge 1:1 pcode using ../data/data_spotlight/codepo.dta
+.         drop if _m == 2
+.         drop _m
+. 
+.         *  ================================================
+.         *  = Manually add in ea and no for NI postcodes =
+.         *  ================================================
+.         replace ea = 144626 if icode == "83S"
+.         replace no = 529251 if icode == "83S"
+.         replace ea = 153586 if icode == "55S"
+.         replace no = 528954 if icode == "55S"
+.         replace ea = 114186 if icode == "04S"
+.         replace no = 513309 if icode == "04S"
+. 
+.         save ../data/data_spotlight/sites_for_maps.dta, replace
+. 
+.         *  ==========================================================
+.         *  = Now convert the eastings and northings to long and lat =
+.         *  ==========================================================
+.         use ../data/data_spotlight/sites_for_maps.dta, clear
+.         cap drop lon lat
+.         cap drop id
+.         gen id = _n
+.         save ../data/data_spotlight/sites_for_maps.dta, replace
+.         outsheet id ea no using "../data/osgrid.txt", replace nonames
+.         // python script run from the shell
+.         ! /Users/steve/data/spot_reports/ccode/osgrid2lonlat.py
+.         insheet id ea no lon lat using "../data/lonlat.txt", clear
+.         merge 1:1 id using ../data/data_spotlight/sites_for_maps.dta
+.         drop _m
+. 
+.         save ../data/data_spotlight/sites_for_maps.dta, replace
+. 
+.         // ==============================
+.         // = Import and draw a test map =
+.         // ==============================
+.         // CHANGED: 2013-02-22 - don't use the OS map - resolution too high, 
+> PDF too large
+.         // cd /Users/steve/Pictures/mapping/ordnance_survey/merid2_essh_gb/da
+> ta
+.         cd /Users/steve/Pictures/mapping/natural_earth/ne_10m_admin_0_map_sub
+> units
+.         local filename $filename
+.         if $cleanrun {
+.                 shp2dta using `filename', ///
+>                         database(`filename'_db) coordinates(`filename'_xy) ge
+> nid(id) ///
+>                         replace
+.         }
+.         ! cp ./`filename'_db.dta ~/data/spot_reports/data/data_spotlight/`fil
+> ename'_db.dta
+.         ! cp ./`filename'_xy.dta ~/data/spot_reports/data/data_spotlight/`fil
+> ename'_xy.dta
+.         cd ~/data/spot_reports/vcode
+. 
+.         // use ../data/`filename'_db,clear
+.         // spmap using ../data/`filename'_xy, id(id)
+.         // graph rename base_map, replace
+. }
+
+. 
+. 
+. local filename $filename
+
+. use ../data/data_spotlight/sites_for_maps.dta, clear
+
+. replace icode = lower(icode)
+(0 real changes made)
+
+. cap drop this_icode
+
+. gen this_icode = icode == "$this_icode"
+
+. save ../data/data_spotlight/sites_for_maps.dta, replace
+file ../data/data_spotlight/sites_for_maps.dta saved
+
+. 
+. use ../data/data_spotlight/`filename'_db,clear
+
+. spmap using ../data/data_spotlight/`filename'_xy ///
+>         if adm0_a3 == "GBR" ///
+>         , id(id) ///
+>         point( ///
+>                 by(this_icode) ///
+>                 data(../data/data_spotlight/sites_for_maps.dta) xcoord(lon) y
+> coord(lat) ///
+>                 fcolor(Paired) ocolor(Paired) ///
+>                 ) ///
+>         xsize(2) ysize(3)
+
+. 
+. graph rename point_map, replace
+(note: graph point_map not found)
+
+. graph export ../outputs/figures/fig_study_sites.png, ///
+>         name(point_map) ///
+>         replace
+translator Graph2png not found
+r(111);
+r(111);
+
+end of do-file
+r(111);

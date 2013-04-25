@@ -50,8 +50,8 @@ import argparse
 # Use local version of myspot module
 # You can switch back to using the main myspot module if you push local changes back
 
-sys.path.remove('/Users/steve/usr/local/lib')
-sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
+# sys.path.remove('/Users/steve/usr/local/lib')
+# sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
 
 from myspot import sql_connect
 from myspot import get_yaml_dict
@@ -650,6 +650,9 @@ else:
     else:
         print "WARNING: field sort order specified separately to SELECT statement"
         print "- check order source field order matches SELECT statement"
+        # TODO: 2013-04-25 - having two separate field lists is dangerous
+        # CHANGED: 2013-04-25 - added in a sys.exit(1) here even though not needed if everything is OK
+        sys.exit(1)
 
 # Check your field extraction worked
 # print fields

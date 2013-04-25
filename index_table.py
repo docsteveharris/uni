@@ -33,8 +33,8 @@ import sys      # file input / output
 # Use local version of myspot module
 # You can switch back to using the main myspot module if you push local changes back
 
-sys.path.remove('/Users/steve/usr/local/lib')
-sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
+# sys.path.remove('/Users/steve/usr/local/lib')
+# sys.path.append('/Users/steve/data/spot_early/local/lib_usr')
 
                 # handles multiline MySQL statements
 from mypy import sql_multistmt

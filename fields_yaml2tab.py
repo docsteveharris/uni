@@ -31,10 +31,12 @@ import copy     # deep copy of lists
 # CHANGED: 2013-02-08 - changed back?!?
 print sys.path
 
-sys.path.remove('/Users/steve/usr/local/lib')
-lib_usr_path = '/Users/steve/data/spot_early/local/lib_usr'
-sys.path.append(lib_usr_path)
+# sys.path.remove('/Users/steve/usr/local/lib')
+# lib_usr_path = '/Users/steve/data/spot_early/local/lib_usr'
+# sys.path.append(lib_usr_path)
 
+if not '/Users/steve/usr/local/lib' in sys.path:
+    sys.path.append('/Users/steve/usr/local/lib')
 
 from myspot import get_yaml_dict
 from myspot import check_file
@@ -82,16 +84,16 @@ output_list.append("""\t""".join(column_headers) + """\n""")
 print output_list
 
 for my_var in my_vars:
-    # print my_var
+    print my_var
     new_row = []
     if my_var not in fdict:
         print "%s not found in field dictionary" % my_var
         continue
     for attribute in attribute_list:
-        # import pdb; pdb.set_trace()
         # check first for correctly formatted version
         if attribute in fdict[my_var] and attribute in format_list:
             if attribute_format == 'latex':
+                # import pdb; pdb.set_trace()
                 new_row.append(fdict[my_var][attribute]['latex'])
             else:
                 new_row.append(fdict[my_var][attribute])
