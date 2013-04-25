@@ -25,7 +25,7 @@
 # TODO: 2012-08-17 -  fix bug with name encryption / decryption
 # DEBUGGING: 2012-08-20 - remove LIMIT
   sql_select: SELECT sql_select_fields FROM idpid_ix WHERE disable_admx != 1
-  sql_select_fields: [tab_serial, sitename, spotidno, initials, title, namef, namel, dob, idnhs, idmrn, adno_provided, idpcode, disable_admx, flag_age_est, sex, hadmit_date, cxr_dt, cxrquad, cxrnew, cxrlrti, cxreff, fupend_date, fupend_why, hdc_date, hdc_res, sofa_d0, sofa_d2, disable_pt, notes_idweb]
+  sql_select_fields: [tab_serial, sitename, spotidno, initials, title, namef, namel, dob, idnhs, idmrn, adno_provided, idpcode, disable_admx, flag_age_est, sex, hadmit_date, cxr_dt, cxrquad, cxrnew, cxrlrti, cxreff, fupend_date, fupend_why, hdc_date, hdc_res, sofa_d0, sofa_d2, disable_pt, notes_idweb, patient_createdat]
   dependencies: [idpid]
   sitekey: sitename
   sourcefields:
@@ -58,6 +58,7 @@
     - sofa_day2
     - patientrecorddisabled
     - notes
+    - patient_createdat
   essentialfields:
     - sitename
     - spotidno
@@ -67,6 +68,7 @@
     - idmrn
     - hadmit_date
     - cxr_dt
+    - patient_createdat
 #  =========================================
 #  = Hospital episode statistics 2010-2011 =
 #  =========================================
@@ -529,83 +531,85 @@
   sourcetables: [idpid, idpatient]
   sql_select: |
     SELECT
-    idpid.sitename AS sitecode,
-    idpid.spotidno,
-    idpid.initials,
-    idpid.title,
-    idpid.dob,
-    idpid.idmrn,
-    idpid.adno_provided,
-    idpid.disable_admx,
-    idpid.flag_age_est,
-    idpid.sex,
-    idpid.hadmit_date,
-    idpid.cxr_dt,
-    idpid.cxrquad,
-    idpid.cxrnew,
-    idpid.cxrlrti,
-    idpid.cxreff,
-    idpid.fupend_date,
-    idpid.fupend_why,
-    idpid.hdc_date,
-    idpid.hdc_res,
-    idpid.sofa_d0,
-    idpid.sofa_d2,
-    idpid.disable_pt,
-    idpid.notes_idweb,
-    (IF(COUNT(pt.spotidno)!=0,1,0)) AS idpatient_crf_found,
-    (IF(COUNT(v.spotidno)!=0,COUNT(v.spotidno),0)) AS idvisit_crf_count,
-    pt.initials AS initials_crf,
-    pt.hadmit_date AS hadmit_date_crf,
-    pt.admx_lrti,
-    pt.pmh_surg,
-    pt.admx_other,
-    pt.admx_code,
-    pt.lrti_symp,
-    pt.lrti_days,
-    pt.ha_res,
-    pt.ethnicity,
-    pt.pmhmi,
-    pt.pmhhf,
-    pt.pmhpvd,
-    pt.pmhcvd,
-    pt.pmhhemi,
-    pt.pmhaids,
-    pt.pmhmld,
-    pt.pmhsld,
-    pt.pmhckd,
-    pt.pmhctd,
-    pt.pmhud,
-    pt.pmhdem,
-    pt.pmhdm,
-    pt.pmhdmend,
-    pt.pmhtumour,
-    pt.pmhmets,
-    pt.pmhlymph,
-    pt.pmhleuk,
-    pt.pmhasth,
-    pt.pmhtb,
-    pt.pmhbronch,
-    pt.pmhcopd,
-    pt.pmhcf,
-    pt.pmhfib,
-    pt.adlbath,
-    pt.adlshop,
-    pt.adlmoney,
-    pt.adltrans,
-    pt.adlhouse,
-    pt.immrx,
-    pt.immair,
-    pt.immetoh,
-    pt.immiv,
-    pt.creat_base,
-    pt.abx_prev,
-    pt.abx1date,
-    pt.abx1time,
-    pt.lrti_micro,
-    np.notes_id,
-    nl.notes_idlab,
-    nu.notes_idlabuclh
+      idpid.sitename AS sitecode,
+      idpid.spotidno,
+      idpid.initials,
+      idpid.title,
+      idpid.dob,
+      idpid.idmrn,
+      idpid.adno_provided,
+      idpid.disable_admx,
+      idpid.flag_age_est,
+      idpid.sex,
+      idpid.hadmit_date,
+      idpid.cxr_dt,
+      idpid.cxrquad,
+      idpid.cxrnew,
+      idpid.cxrlrti,
+      idpid.cxreff,
+      idpid.fupend_date,
+      idpid.fupend_why,
+      idpid.hdc_date,
+      idpid.hdc_res,
+      idpid.sofa_d0,
+      idpid.sofa_d2,
+      idpid.disable_pt,
+      idpid.notes_idweb,
+      (IF(COUNT(pt.spotidno)!=0,1,0)) AS idpatient_crf_found,
+      (IF(COUNT(v.spotidno)!=0,COUNT(v.spotidno),0)) AS idvisit_crf_count,
+      pt.initials AS initials_crf,
+      pt.hadmit_date AS hadmit_date_crf,
+      pt.admx_lrti,
+      pt.pmh_surg,
+      pt.admx_other,
+      pt.admx_code,
+      pt.lrti_symp,
+      pt.lrti_days,
+      pt.ha_res,
+      pt.ethnicity,
+      pt.pmhmi,
+      pt.pmhhf,
+      pt.pmhpvd,
+      pt.pmhcvd,
+      pt.pmhhemi,
+      pt.pmhaids,
+      pt.pmhmld,
+      pt.pmhsld,
+      pt.pmhckd,
+      pt.pmhctd,
+      pt.pmhud,
+      pt.pmhdem,
+      pt.pmhdm,
+      pt.pmhdmend,
+      pt.pmhtumour,
+      pt.pmhmets,
+      pt.pmhlymph,
+      pt.pmhleuk,
+      pt.pmhasth,
+      pt.pmhtb,
+      pt.pmhbronch,
+      pt.pmhcopd,
+      pt.pmhcf,
+      pt.pmhfib,
+      pt.adlbath,
+      pt.adlshop,
+      pt.adlmoney,
+      pt.adltrans,
+      pt.adlhouse,
+      pt.immrx,
+      pt.immair,
+      pt.immetoh,
+      pt.immiv,
+      pt.creat_base,
+      pt.abx_prev,
+      pt.abx1date,
+      pt.abx1time,
+      pt.lrti_micro,
+      np.notes_id,
+      nl.notes_idlab,
+      nu.notes_idlabuclh,
+      mris.date_trace,
+      mris.dead
     FROM idpid
     LEFT JOIN idpatient AS pt
     ON idpid.sitename = pt.sitecode AND idpid.spotidno = pt.spotidno
@@ -617,6 +621,8 @@
     ON idpid.sitename = nu.sitecode AND idpid.spotidno = nu.spotidno
     LEFT JOIN idvisit AS v
     ON idpid.sitename = v.sitecode AND idpid.spotidno = v.spotidno
+    LEFT JOIN mris_final AS mris
+    ON mris.patient_createdat = idpid.patient_createdat AND mris.sitename = idpid.sitename
     GROUP BY idpid.sitename, idpid.spotidno
   sitekey: sitecode
   derivedfields:
@@ -1930,6 +1936,8 @@
       t.pa_v3,
       t.raicu1,
       t.dead_icu,
+      t.ahsurv,
+      t.yhlos,
       t.dod,
       t.tod,
       t.ddicu,

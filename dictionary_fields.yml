@@ -2975,6 +2975,12 @@
   sqllen: 64
   varlab: excel sheet name from where data originally imported
 -
+  fname: patient_createdat
+  sqltype: timestamp
+  varlab: general purpose timestamp
+  notes: |
+    Used to index records in (SPOT)id in combination with sitename
+-
   fname: modifiedat
   sqltype: timestamp
   varlab: general purpose timestamp
@@ -3469,6 +3475,7 @@
   sqltype: float
   source: CMPD
   varlab: CMPD unit length of stay
+  stataformat: "%9.1fc"
   tablerowlabel:
     latex: "ICU length of stay"
   unitlabel:
@@ -4019,9 +4026,9 @@
       # CHANGED: 2013-02-08 - since rxfio2 is now an integer code
       rxfio2_dict = {0:'r', 1:'w', 2:'v', 3:'b', 4:'c', 5:'n', 6:'p', 7:'o'}
       if rxfio2 in rxfio2_dict:
-        rxfio2 = rxfio2_dict[rxfio2]
+          rxfio2 = rxfio2_dict[rxfio2]
       else:
-        rxfio2 = ''
+          rxfio2 = ''
       # FiO2 standardised
       fio2_std = None
       if rxfio2 == 'r':
