@@ -46,12 +46,117 @@ import yaml
 import myspot
 import mypy
 import os
+import string
 
 # =================================
 # Step 3 - get the field dictionary
 fdict = myspot.get_yaml_dict('field', return_type='dictionary', local_dict=False)
 print len(fdict)
 
+# Now define your own appendix - don't use latex glossary
+# _______________________________________________________
+entries = {}
+for k, fentry in fdict.items():
+    if 'definition' not in fentry:
+        continue
+    if fentry.get('source') is None:
+        continue
+    entry = []
+    if 'tablerowlabel' in fentry:
+        entry_heading = "## %s" % fentry['tablerowlabel']['latex']
+    else:
+        entry_heading = "## %s" % fentry['varlab']
+    print entry_heading
+    entry.append(entry_heading)
+    entry_subheading = "### Field definition"
+    entry.append(entry_subheading)
+    # First clean the string of any odd characters
+    entry_definition = fentry['definition'].encode('utf-8')
+    entry.append(entry_definition)
+
+    # Units
+    if 'unitlabel' in fentry:
+        # Use the latex specified label
+        unit_label = fentry['unitlabel']['latex']
+        # Replace double back slashes with single
+        unit_label = string.replace(unit_label,u'\\\\',u'\\')
+        unit_label = string.replace(unit_label,u'{\\texttimes}',u'\\texttimes ')
+        print unit_label
+        unit_label = '- Units: ' + unit_label + '\n'
+        entry.append(unit_label)
+
+    # Field level validation
+    min, max, regex, legal, vallab = None, None, None, None, None
+    if 'checks' in fentry:
+        # Convert list of checks into dictionary
+        check_dict = {i['type']: i for i in fentry['checks']}
+        min = check_dict.get('min')
+        max = check_dict.get('max')
+        regex = check_dict.get('regex')
+        legal = check_dict.get('legal')
+    if 'vallab' in fentry:
+        vallab = fentry.get('vallab')
+    if min or max or regex or vallab:
+        entry_subheading = "### Logical checks\n"
+        entry.append(entry_subheading)
+
+        # Legal values
+        if vallab:
+            entry_subheading = "- Legal values:"
+            entry.append(entry_subheading)
+            entry_legal = fentry['vallab'].values()
+            entry_legal = '\n    - ' + '\n    - '.join(entry_legal)
+            entry_legal = entry_legal + '\n'
+            entry.append(entry_legal)
+
+        # Range checks
+        if min or max or regex:
+            if min and max:
+                range = "- Legal range: `%s` $\leq value \leq$ `%s`" % (min['value'], max['value'])
+                entry.append(range)
+            elif min:
+                range = "- Legal range: $value \geq$ `%s`" % (min['value'])
+                entry.append(range)
+            elif max:
+                range = "- Legal range: $value \leq$ `%s`" % (max['value'])
+                entry.append(range)
+            if regex:
+                regex = "- Regular expression: `%s`" % (regex['value'])
+                entry.append(regex)
+    # TODO: 2013-07-04 - cross field level validation (use dictionary checks)
+
+
+
+    end_of_entry = "\n"
+    entry.append(end_of_entry)
+    # Now join the lines of the entry together and append to the entries list
+    # entries.append('\n'.join(entry))
+    entries[entry_heading] = '\n'.join(entry)
+
+# Sort the list of fields
+entries_list = [entries[k] for k in sorted(entries)]
+
+# print entries_list
+md_out = '---\n\n'.join(entries_list)
+md_out = '''
+
+# (SPOT)light field definitions
+
+\label{appendix:field_definitions}
+
+''' + md_out
+print md_out
+latex_out = md2latex(md_out)
+
+# =============================
+# Step - produce the appendix
+path_to = '/Users/steve/Data/phd/writing/Appendix/'
+appendix_file = 'appendix_field_definitions.tex'
+appendix_file = path_to + appendix_file
+
+with open(appendix_file, 'w') as ffile:
+    ffile.write(latex_out)
+sys.exit(0)
 # =============================================================
 # Step 4 - loop through the field dictionary and append further
 
@@ -109,11 +214,11 @@ gloss_yml = get_yaml_dict()
 # Example: Mandatory arg 1 = label (must be unique)
 # Example: Mandatory arg 2 = key value list
 # Mandatory keys: name, description
-# Specify type = acronym if defined for that purpose only 
+# Specify type = acronym if defined for that purpose only
 # \newglossaryentry{electrolyte}{name=electrolyte,
 # description={solution able to conduct electric current}}
 # For acronyms then define the 'first' key with the expansion and the 'text' key with the acronym
- 
+
 gloss_list = []
 # Loop skips any incomplete entries
 for entry in gloss_yml:
