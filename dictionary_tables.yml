@@ -1545,7 +1545,7 @@
       LEFT JOIN q
       ON h.icode = q.icode AND h.studymonth = q.studymonth
       LEFT JOIN (SELECT icode, count(DISTINCT studymonth) AS n FROM headsfinal GROUP BY icode) AS months
-      ON h.icode = months.icode;
+      ON h.icode = months.icode; 
   postflight:
   derivedfields:
     - icu_discharge
@@ -1648,7 +1648,7 @@
       h.hes_emergencies,
       h.hes_daycase,
       h.hes_genmed,
-      s.icode
+      IF(s.icode IS NOT NULL, s.icode, "00S") as icode
       FROM hes_providers AS h
       LEFT JOIN metasiteunit AS m
         ON h.hes_code = m.hes_code
@@ -1726,6 +1726,7 @@
     WHERE (s.icode IS NOT NULL AND t.daicu >= s.lite_open AND t.daicu <= s.lite_close)
       OR (s.icode IS NULL AND t.hospname != 'aardvark')
     GROUP BY t.hospname;
+    DELETE FROM tmp WHERE dorisname = "";
     SELECT * FROM tmp;
   sql_select: |
       SELECT
@@ -2063,13 +2064,14 @@
       h.v_dc,
       h.v_first,
       h.adno_provided,
-      h.date_trace,
-      h.dead
+      m.date_event as date_trace,
+      m.dead
     FROM tailsFinal_ix AS t
      LEFT JOIN headsfinal AS h
       ON t.idvisit = h.idvisit
     LEFT JOIN q
       ON t.icode = q.icode AND t.studyMonth = q.studyMonth
+    LEFT JOIN tails_mris AS m ON t.icnno = m.icnno AND t.adno = m.adno 
     WHERE t.icode IS NOT NULL AND t.elgdate = 1 AND t.elgemx = 1
       AND (t.elgward = 1 OR t.elgoward = 1 OR t.elgtrans = 1)
       AND t.icode != '72s';
@@ -2123,6 +2125,7 @@
     ALTER TABLE tailsFinal ADD INDEX(idvisit);
     ALTER TABLE headsFinal ADD INDEX(idvisit);
     NOTE: 2012-11-21 - excluding airedale too (icode = 72s)
+    NOTE: 2013-05-20 - *VERY* slow query: don't know why but to do with the join onto tails_mris
 -
   tablename: tails_traj
   type: derived
