@@ -28,8 +28,8 @@ import sys      # file input / output
 # Use local version of myspot module
 # You can switch back to using the main myspot module if you push local changes back
 
-sys.path.remove('/Users/steve/usr/local/lib')
-sys.path.append('/Users/steve/data/spot_id/local/lib_usr')
+# sys.path.remove('/Users/steve/usr/local/lib')
+# sys.path.append('/Users/steve/data/spot_id/local/lib_usr')
 
 import myspot   # user written spot functions
 
@@ -45,6 +45,8 @@ import time
 import MySQLdb  # MySQL database wrapper
 import re       # regular expressions
 import argparse # command line parsing
+
+import pprint
 
 
                 # read excel data
@@ -366,7 +368,7 @@ OK: Processing %s from %s"
             if len(str(cell.value)) == 0:
                 cell_raw_value = None
             else:
-                cell_raw_value = MySQLdb.escape_string(str(cell.value))
+                cell_raw_value = MySQLdb.escape_string(str(cell.value))[:255]
             cells_raw.append(cell_raw_value)
             cells_clean.append(result['cell_value'])
 
@@ -385,7 +387,7 @@ OK: Processing %s from %s"
                         VALUES ('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')
                         """ % (input_filename, sheet, input_filetime,
                             tab_name_sql, row_number, fname,
-                            result['raw_value'], result['validation_msg']))
+                            cell_raw_value, result['validation_msg']))
                 my_cursor.execute(stmt)
 
         # Now add this column of cells to your list of columns
@@ -397,6 +399,7 @@ OK: Processing %s from %s"
     rows_clean = zip(*cols_clean)
 
     myspot.sql_append_headed_list(my_cursor, tab_name_sql + '_raw', rows_raw)
+    # pprint.pprint(rows_clean)
     myspot.sql_append_headed_list(my_cursor, tab_name_sql, rows_clean)
 
     # now write sourceFile/timestamp data
