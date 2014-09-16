@@ -1,0 +1,44 @@
+# List of SQL statements for individualised corrections to data with an audit trail
+# Corrections will be applied after creation of the _ix table
+# Hence table will already be correctly named and indexed
+# Corrections to key fields will need to be handled on a case-by-case basis
+# These will modify the import table and run before pulling the data
+
+---
+-
+  database: spotid
+  type: table_wide
+  table: idpid
+  statement: UPDATE idpid_ix SET hdc_res = 'd' WHERE fupend_why = 'd' AND sitename='Lister Hospital'
+  date: 120920
+  note: |
+    Lister - recode post-discharge residence to dead if end of follow-up is also dead
+    Message from Pippa De Sousa
+-
+  database: spotid
+  type: table_wide
+  table: idpid
+  statement: UPDATE idpid_ix SET hdc_res = 'd' WHERE fupend_why = 'd' AND sitename='University College Hospital'
+  date: 121005
+  note: |
+    UCLH - recode post-discharge residence to dead if end of follow-up is also dead
+    Message from Jung
+-
+  database: spotid
+  type: table_wide
+  table: idpid
+  statement: UPDATE idvisit_ix SET gcst = NULL WHERE  sitecode = 'ket' AND rxsed = 'y' AND gcst = 3;
+  date: 121003
+  note: Message from Parizade via email
+-
+  database: spotid
+  type: row_only
+  table: idpid
+  statement: |
+    UPDATE idpid_import SET spotidno = 135
+      WHERE  sitename = 'har' AND spotidno = 92 AND initials = 'de';
+  date: 121001
+  note: |
+    - Message from Lorraine via email
+    - use abbreviated site name in idpid because already converted by import_sql.py
+    - 121213: they have corrected this themselves on the web portal

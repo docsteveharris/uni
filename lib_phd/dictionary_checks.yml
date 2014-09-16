@@ -1,0 +1,751 @@
+# #PhD data validation specification
+# - level: check level (field, row)
+#   - i.e. whether fields, rows  should be flagged as unusual or imposs
+#   - TODO: 2012-08-09 - @idea: cross row queries i.e. flag sudden discontinuties in heart rate
+# - fields: list of tables and nested lists of fields needed for check
+# - chkcode: list of code specifications (one for each language needed)
+#     - must always evaluate to true or false
+#     - if result is binary not continous then will only have one chklvl (which will either be unusual or imposs)
+
+# TODO: 2012-08-09 - list of checks to create
+# spotid - missing data from one of the tables (i.e. patient data but no visit data)
+
+---
+-
+  checkname: wide_pulse_pressure
+  msg: Wide pulse pressure (Systolic - Diastolic)
+  level: field # i.e. makes involved fields imposs or unusual (not the row)
+  fields:
+  - bpdia
+  - bpsys
+  code:
+    python: bpsys - bpdia > chklvl
+    stata:
+    mysql:
+  chklvls:
+    unusual: 120
+    impossible: 200
+  notes:
+-
+  checkname: age_less_than_18
+  msg: Age < 18 yrs on day of visit
+  level: row # i.e. must drop the whole row if this is true
+  fields:
+  - v_date
+  - dob
+  code:
+    python: (v_date - dob).days < chklvl
+  chklvls:
+    impossible: 6574 # 18 * 365.25
+  notes:
+-
+  checkname: visit_before_followup_period
+  msg: Visit date is more than 2 days before date of index CXR
+  level: row
+  fields:
+  - v_date
+  - cxr_dt
+  code:
+    python: (cxr_dt - v_date).days > chklvl
+  chklvls:
+    impossible: 2
+  notes:
+-
+  checkname: visit_after_followup_period
+  msg: Visit date is more than 10 days after date of index CXR
+  level: row
+  fields:
+  - v_date
+  - cxr_dt
+  code:
+    python: (v_date - cxr_dt).days > chklvl
+  chklvls:
+    impossible: 10
+  notes:
+-
+  checkname: cxr_before_hospital_admission
+  msg: Date of index CXR is before date of hospital admission
+  level: field
+  fields:
+  - cxr_dt
+  - hadmit_date
+  code:
+    python: (hadmit_date - cxr_dt).days > chklvl
+    stata:
+    mysql:
+  chklvls:
+    impossible: 0
+  notes: notes
+-
+  checkname: discharge_before_admission
+  msg: Date of discharge is before date of hospital admission
+  level: field
+  fields:
+  - hdc_date
+  - hadmit_date
+  code:
+    python: (hdc_date - hadmit_date).days < chklvl
+    stata:
+    mysql:
+  chklvls:
+    impossible: 0
+  notes:
+-
+  checkname: followup_after_discharge
+  msg: Last follow-up date after reported discharge
+  level: field
+  fields:
+  - fupend_date
+  - hdc_date
+  code:
+    python: (fupend_date - hdc_date).days > chklvl
+  chklvls:
+    impossible: 0
+  notes:
+-
+  checkname: death_reported_but_residence_not_dead
+  msg: Death reported but residence post-discharge is not coded as dead
+  level: field
+  fields:
+  - hdc_res
+  - fupend_why
+  code:
+    python: (hdc_res != 'd' and  fupend_why == 'd') == True
+  chklvls:
+    unusual: True
+  notes: |
+    - dropped for UCLH - see corrections table
+
+# NOTE: 2012-09-05 - trouble with substituing text field in as string
+# so dropped for now
+# -
+#   checkname: death_mentioned_but_not_reported
+#   msg: Death mentioned in notes but final out come not dead
+#   level: field
+#   fields:
+#   - hdc_res
+#   - fupend_why
+#   code:
+#     python: (hdc_res != 'd' and  re.search(r"dead|died", notes_idweb , re.IGNORECASE) != None) == True
+#   chklvls:
+#     unusual: True
+#   notes:
+
+-
+  checkname: antibiotics_before_admission
+  msg: Hospital antibiotics date before admission date
+  level: field
+  fields:
+  - abx1date
+  - hadmit_date
+  code:
+    python: (hadmit_date - abx1date).days > chklvl
+  chklvls:
+    impossible: 0
+  notes:
+-
+  checkname: antibiotics_after_discharge
+  msg: Hospital antibiotics date after discharge date
+  level: field
+  fields:
+  - abx1date
+  - hdc_date
+  code:
+    python: (hdc_date - abx1date).days < chklvl
+  chklvls:
+    impossible: 0
+  notes:
+-
+  checkname: urine_range_24
+  msg: Urine volume out of usual range for 24 hrs
+  level: field
+  fields:
+  - urine24
+  code:
+    python: urine24 > chklvl
+  chklvls:
+    unusual: 5000
+    impossible: 12000
+  notes:
+-
+  checkname: urine_range_hourly
+  msg: Urine volume out of usual range for hourly
+  level: field
+  fields:
+  - urine1
+  code:
+    python: urine1 > chklvl
+  chklvls:
+    unusual: 200
+    impossible: 1000
+  notes:
+-
+  checkname: urine_range_timed
+  msg: Urine volume out of usual range for timed period
+  level: field
+  fields:
+  - uvol1h
+  code:
+    python: uvol1h > chklvl
+  chklvls:
+    unusual: 200
+    impossible: 1000
+  notes: this code runs against a derived field
+-
+  checkname: fluidin_range_high
+  msg: 24 hour fluid volume above normal range
+  level: field
+  fields:
+  - fluidin
+  code:
+    python: fluidin > chklvl
+  chklvls:
+    unusual: 6000
+    impossible: 18000
+  notes:
+-
+  checkname: fluidin_range_low
+  msg: 24 hour fluid volume below normal range
+  level: field
+  fields:
+  - fluidin
+  code:
+    python: fluidin < chklvl
+  chklvls:
+    unusual: 1000
+    impossible: 250
+  notes:
+-
+  checkname: rrate_range_high
+  msg: Respiratory rate very high
+  level: field
+  fields:
+  - rrate
+  code:
+    python: rrate > chklvl
+  chklvls:
+    unusual: 60
+    impossible: 120
+  notes:
+-
+  checkname: spo2_range_low
+  msg: oxygen saturations very low
+  level: field
+  fields:
+  - spo2
+  code:
+    python: spo2 < chklvl
+  chklvls:
+    unusual: 50
+  notes:
+# FiO2 checks in site specific version
+-
+  checkname: fio2_flow_range_high_sitespecific
+  msg: Inspired oxygen flow rate high
+  level: field
+  fields:
+  - sitecode
+  - fio2
+  - fio2u
+  code:
+    python: sitecode not in ['ket', 'ucl'] and fio2u == 'l' and fio2 > chklvl
+  chklvls:
+    unusual: 15
+    impossible: 120
+  notes: |
+    Recoded to permit odd combinations at sites that have reported they locally convert to % even on flow based systems
+-
+  checkname: fio2_units_wrong_percent_sitespecific
+  msg: Inspired oxygen not normally measured in percent with this system
+  level: field
+  fields:
+  - sitecode
+  - fio2u
+  - rxfio2
+  code:
+    python: sitecode not in ['ket', 'ucl'] and fio2u == 'p' and rxfio2 in chklvl
+  chklvls:
+    impossible: [w, b]
+  notes:
+-
+  checkname: fio2_conversion_high_for_wall
+  msg: Inspired oxygen high assuming conversion via Data Collection Manual
+  level: field
+  fields:
+  - sitecode
+  - fio2
+  - rxfio2
+  code:
+    python: sitecode in ['ket', 'ucl'] and rxfio2 == 'w' and fio2 > chklvl
+  chklvls:
+    unusual: 50
+-
+  checkname: fio2_conversion_low_for_reservoir
+  msg: Inspired oxygen high assuming conversion via Data Collection Manual
+  level: field
+  fields:
+  - sitecode
+  - fio2
+  - rxfio2
+  code:
+    python: sitecode in ['ket', 'ucl'] and rxfio2 == 'b' and fio2 < chklvl
+  chklvls:
+    unusual: 60
+# Repeat all FiO2 checks in a non-site specific version for use in other contexts
+-
+  checkname: fio2_percent_range_high
+  msg: Inspired oxygen cannot exceed 100%
+  level: field
+  fields:
+  - fio2
+  - fio2u
+  code:
+    python: fio2u == 'p' and fio2 > chklvl
+  chklvls:
+    impossible: 100
+  notes:
+-
+  checkname: fio2_percent_range_low
+  msg: Inspired oxygen cannot be less than 21%
+  level: field
+  fields:
+  - fio2
+  - fio2u
+  code:
+    python: fio2u == 'p' and fio2 < chklvl
+  chklvls:
+    impossible: 21
+  notes:
+-
+  checkname: fio2_flow_range_high
+  msg: Inspired oxygen flow rate high
+  level: field
+  fields:
+  - fio2
+  - fio2u
+  code:
+    python: fio2u == 'l' and fio2 > chklvl
+  chklvls:
+    unusual: 15
+    impossible: 120
+  notes:
+-
+  checkname: fio2_units_wrong_litres
+  msg: Inspired oxygen not normally measured in litres per min with this system
+  level: field
+  fields:
+  - fio2u
+  - rxfio2
+  code:
+    python: fio2u == 'l' and rxfio2 in chklvl
+  chklvls:
+    impossible: [r, v, p]
+  notes:
+-
+  checkname: fio2_units_wrong_percent
+  msg: Inspired oxygen not normally measured in percent with this system
+  level: field
+  fields:
+  - fio2u
+  - rxfio2
+  code:
+    python: fio2u == 'p' and rxfio2 in chklvl
+  chklvls:
+    impossible: [w, b]
+  notes:
+-
+  checkname: pao2_low_for_fio2_percent
+  msg: Low PaO2 for reported FiO2 ? venous ABG (assumed FiO2 in %)
+  level: field
+  fields:
+  - pao2
+  - fio2u
+  - fio2
+  code:
+    python: fio2u == 'p' and fio2 < 50 and pao2 <= chklvl
+  chklvls:
+    unusual: 6
+    impossible: 3
+  notes:
+-
+  checkname: pao2_low_for_fio2_litres
+  msg: Low PaO2 for reported FiO2 ? venous ABG (assumed FiO2 in l/min)
+  level: field
+  fields:
+  - pao2
+  - fio2u
+  - fio2
+  code:
+    python: fio2u == 'l' and fio2 < 5 and pao2 <= chklvl
+  chklvls:
+    unusual: 6
+    impossible: 3
+  notes:
+-
+  checkname: pao2_range_high_kpa
+  msg: PaO2 very high
+  level: field
+  fields:
+  - pao2
+  - abgunit
+  code:
+    python: abgunit == 'k' and pao2 > chklvl
+  chklvls:
+    unusual: 50
+    impossible: 90
+  notes:
+-
+  checkname: pao2_range_low_kpa
+  msg: PaO2 very low
+  level: field
+  fields:
+  - pao2
+  - abgunit
+  code:
+    python: abgunit == 'k' and pao2 < chklvl
+  chklvls:
+    unusual: 5
+    impossible: 2
+  notes:
+-
+  checkname: pao2_range_high_kpa_assumed
+  msg: PaO2 very high
+  level: field
+  fields:
+  - pao2
+  code:
+    python: pao2 > chklvl
+  chklvls:
+    unusual: 50
+    impossible: 90
+  notes: |
+    (SPOT)id data collection the only option was for kPa
+-
+  checkname: pao2_range_low_kpa_assumed
+  msg: PaO2 very low
+  level: field
+  fields:
+  - pao2
+  code:
+    python: pao2 < chklvl
+  chklvls:
+    unusual: 5
+    impossible: 2
+  notes:
+-
+  checkname: pao2_range_high_mmhg
+  msg: PaO2 very high - for mmHg
+  level: field
+  fields:
+  - pao2
+  - abgunit
+  code:
+    python: abgunit == 'm' and pao2 > chklvl
+  chklvls:
+    unusual: 380
+    impossible: 684
+  notes:
+-
+  checkname: pao2_range_low_mmhg
+  msg: PaO2 very low - mmHg
+  level: field
+  fields:
+  - pao2
+  - abgunit
+  code:
+    python: abgunit == 'm' and pao2 < chklvl
+  chklvls:
+    unusual: 38
+    impossible: 15
+  notes:
+-
+  checkname: peep_range_low
+  msg: PEEP very low
+  level: field
+  fields:
+  - rxpeep
+  code:
+    python: rxpeep < chklvl
+  chklvls:
+    unusual: 4
+  notes:
+-
+  checkname: peep_range_high
+  msg: PEEP very high
+  level: field
+  fields:
+  - rxpeep
+  code:
+    python: rxpeep > chklvl
+  chklvls:
+    unusual: 15
+  notes:
+-
+  checkname: peep_not_reported
+  msg: PEEP not reported despite NIV or IPPV
+  level: field
+  fields:
+  - rxpeep
+  - rxfio2
+  code:
+    python: rxpeep is None and rxfio2 in chklvl
+  chklvls:
+    unusual: [c, n ,p]
+  notes:
+-
+  checkname: low_gcs_with_sedation
+  msg: GCS should be assessed without sedation - please confirm this is the pre-sedation value
+  level: field
+  fields:
+  - rxsed
+  - gcst
+  code:
+    python: rxsed == 1 and gcst < chklvl
+  chklvls:
+    unusual: 13
+  notes:
+-
+  checkname: delirium_with_sedation
+  msg: Delirium should be assessed without sedation - please confirm this is the pre-sedation value
+  level: field
+  fields:
+  - delirium
+  - rxsed
+  code:
+    python: rxsed == 1 and delirium == chklvl
+  chklvls:
+    unusual: 1
+  notes:
+-
+  checkname: temperature_range_high
+  msg: Temperature above usual range
+  level: field
+  fields:
+  - temperature
+  code:
+    python: temperature > chklvl
+  chklvls:
+    unusual: 42
+    impossible: 45
+  notes:
+-
+  checkname: temperature_range_low
+  msg: Temperature below usual range
+  level: field
+  fields:
+  - temperature
+  code:
+    python: temperature < chklvl
+  chklvls:
+    unusual: 34
+    impossible: 25
+  notes:
+-
+  checkname: nor_adrenaline_dose_range_high
+  msg: Nor/adrenaline dose out of usual range
+  level: field
+  fields:
+  - rxcvs_dose
+  - rxcvs_drug
+  code:
+    python: rxcvs_drug in list('na') and rxcvs_dose > chklvl
+  chklvls:
+    unusual: 1
+    impossible: 2
+  notes:
+-
+  checkname: vasopressin_dose_range_high
+  msg: Vasopressin dose out of usual range
+  level: field
+  fields:
+  - rxcvs_dose
+  - rxcvs_drug
+  code:
+    python: rxcvs_drug == 'v' and rxcvs_dose > chklvl
+  chklvls:
+    unusual: 0.04
+    impossible: 0.2
+  notes:
+-
+  checkname: dopamine_dose_range_high
+  msg: dopamine dose out of usual range
+  level: field
+  fields:
+  - rxcvs_dose
+  - rxcvs_drug
+  code:
+    python: rxcvs_drug == 'd' and rxcvs_dose > chklvl
+  chklvls:
+    unusual: 20
+    impossible: 40
+  notes:
+-
+  checkname: lactate_range_high
+  msg: Lactate above usual range
+  level: field
+  fields:
+  - lactate
+  code:
+    python: lactate > chklvl
+  chklvls:
+    unusual: 10
+    impossible: 50
+  notes:
+-
+  checkname: lymphocytes_high
+  msg: Lymphocyte percentage high for reported white cell count
+  level: field
+  fields:
+  - lymph
+  - wcc
+  code:
+    python: (wcc - lymph) / wcc < chklvl
+  chklvls:
+    unusual: 0.5
+    impossible: 0.0
+  notes:
+-
+  checkname: ccmds_unreported
+  msg: Level of care (CCMDS) not reported on daily assessment
+  level: field
+  fields:
+  - v_ccmds_reported
+  code:
+    python: v_ccmds_reported == chklvl
+  chklvls:
+    unusual: 0
+  notes:
+-
+  checkname: vitals_unreported
+  msg: No vital signs reported on daily assessment
+  level: field
+  fields:
+  - vitals_reported
+  code:
+    python: vitals_reported == chklvl
+  chklvls:
+    unusual: 0
+  notes:
+-
+  checkname: fbc_unreported
+  msg: FBC not reported on daily assessment
+  level: field
+  fields:
+  - fbc_reported
+  - v_dofw
+  - v_time
+  code:
+    python: v_time == datetime.timedelta(seconds=61) and v_dofw <= 5 and fbc_reported == chklvl
+  chklvls:
+    unusual: 0
+  notes: only checks for weekday bloods
+-
+  checkname: ue_unreported
+  msg: Urea and electrolytes not reported on daily assessment
+  level: field
+  fields:
+  - ue_reported
+  - v_dofw
+  - v_time
+  code:
+    python: v_time == datetime.timedelta(seconds=61) and v_dofw <= 5 and ue_reported == chklvl
+  chklvls:
+    unusual: 0
+  notes: only checks for weekday bloods
+-
+  checkname: initial_assessment_not_found
+  msg: Initial assessment CRF not found or missing
+  level: field
+  fields:
+  - idpatient_crf_found
+  code:
+    python: idpatient_crf_found == chklvl
+  chklvls:
+    unusual: 0
+  notes:
+-
+  checkname: daily_assessments_missing
+  msg: Daily assessment CRF not found or missing
+  level: field
+  fields:
+  - idvisit_crf_count
+  code:
+    python: idvisit_crf_count < chklvl
+  chklvls:
+    unusual: 6
+    impossible: 3
+  notes:
+-
+  checkname: icu_admit_before_discharge
+  msg: ICU discharge before admission
+  level: row
+  fields:
+  - icu_admit
+  - icu_discharge
+  code:
+    python: (icu_discharge - icu_admit).total_seconds() / 3600 < chklvl
+    stata:
+    mysql:
+  chklvls:
+    unusual: 0
+    impossible: -1
+  notes: Permits miscoding by one hour
+-
+  checkname: icu_admit_before_visit
+  msg: ICU admission before visit
+  level: row
+  fields:
+  - icu_admit
+  - v_timestamp
+  code:
+    python: (icu_admit - v_timestamp).total_seconds() / 3600 < chklvl
+    stata:
+    mysql:
+  chklvls:
+    unusual: 0.0
+    impossible: -1.0
+  notes: Permits miscoding by one hour
+-
+  checkname: MRIS_ICNARC_death_mismatch
+  msg: MRIS death does not match ICU death
+  level: row
+  fields:
+  - dead
+  - date_trace
+  - dead_icu
+  - icu_discharge
+  code:
+    python: dead == 1 and dead_icu == 1 and abs((date_trace - icu_discharge.date()).days) > chklvl 
+    stata:
+    mysql:
+  chklvls:
+    impossible: 0
+-
+  checkname: MRIS_ICNARC_survival_mismatch
+  msg: MRIS death does not match ICU survival
+  level: row
+  fields:
+  - dead
+  - date_trace
+  - dead_icu
+  - icu_discharge
+  code:
+    python: dead_icu == 0 and (date_trace - icu_discharge.date()).days < chklvl
+    stata:
+    mysql:
+  chklvls:
+    unusual: 1
+    impossible: 0
+-
+  checkname: MRIS_spotlight_date_mismatch
+  msg: MRIS trace does not match (SPOT)light visit
+  level: row
+  fields:
+  - v_timestamp
+  - date_trace
+  code:
+    python: (date_trace - v_timestamp.date()).days < chklvl
+    stata:
+    mysql:
+  chklvls:
+    impossible: 0

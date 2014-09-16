@@ -1,0 +1,2163 @@
+# PhD table specification
+# Generated once data management complete in the following file
+#  ==================
+#  = Notes on usage =
+#  ==================
+# - lower case for all entries (except in notes)
+# NOTE: 2012-08-17 - try v hard to avoid specifying field list in more than one place else risk the order differing and then keys will fail
+# - source fields: should match the name of the import source (these will be converted via their alias entry in fdict to the true name)
+# - sql_select_fields if derived table (or in the rare case where a primary table must be 'remade')
+# - pkey (primary key): should use the true (non-alias names)
+
+
+---
+#  ==================================================
+#  = idpid - patient identifiers table for (SPOT)id =
+#  ==================================================
+-
+  tablename: idpid
+  notes: |
+    Patient identifiers as entered via web portal
+    source fields correspond to portal names
+    sql_select fields are the de-aliased names use for make_table
+  type: primary
+  pkey: [sitename, spotidno, disable_admx]
+# TODO: 2012-08-17 -  fix bug with name encryption / decryption
+# DEBUGGING: 2012-08-20 - remove LIMIT
+  sql_select: SELECT sql_select_fields FROM idpid_ix WHERE disable_admx != 1
+  sql_select_fields: [tab_serial, sitename, spotidno, initials, title, namef, namel, dob, idnhs, idmrn, adno_provided, idpcode, disable_admx, flag_age_est, sex, hadmit_date, cxr_dt, cxrquad, cxrnew, cxrlrti, cxreff, fupend_date, fupend_why, hdc_date, hdc_res, sofa_d0, sofa_d2, disable_pt, notes_idweb, patient_createdat]
+  dependencies: [idpid]
+  sitekey: sitename
+  sourcefields:
+    - sitename
+    - spotidno
+    - initials
+    - title
+    - firstname
+    - lastname
+    - dob
+    - nhsno
+    - hosno
+    - cmpno
+    - postcode
+    - admissionrecorddisabled
+    # - age_est
+    # - flag_age_est
+    - gender
+    - admissiondt
+    - cxrdt
+    - cxrquadnum
+    - cxrnew
+    - cxrother
+    - cxreffusion
+    - lfudate
+    - obsend
+    - hddate
+    - postres
+    - sofa_day0
+    - sofa_day2
+    - patientrecorddisabled
+    - notes
+    - patient_createdat
+  essentialfields:
+    - sitename
+    - spotidno
+    - namef
+    - namel
+    - dob
+    - idmrn
+    - hadmit_date
+    - cxr_dt
+    - patient_createdat
+#  =========================================
+#  = Hospital episode statistics 2010-2011 =
+#  =========================================
+-
+  tablename: hes_providers
+  type: primary
+  sourcefields:
+      - sha
+      - hes_code
+      - hes_name
+      - hes_admissions
+      - hes_emergencies
+      - hes_daycase
+      - hes_genmed
+  pkey: [hes_code]
+  notes: |
+    Abstracted from 2010-2011 Hospital episode statistics
+    CHANGED: 2013-03-06 -
+    - added Northern Ireland 2011-2012
+    - added Wales 2010
+    Simplifed table and only focused on
+      - admissions
+      - daycases (so you can calculate overnights)
+      - emergencies (for case mix purposes)
+    Data is at trust level for England and Wales but hospital for Northern Ireland
+  source: HES
+
+#  ===============================================
+#  = idpatient - patient level data for (SPOT)id =
+#  ===============================================
+-
+  tablename: idpatient
+  type: primary # primary source or secondary derived
+  corrections_table: id_dvr_wide
+  sourcefields: # list of fields
+    - sitecode
+    - spotidno
+    - patientid
+    - hadate
+    - hatime
+    - rahosppn
+    - recentsurg
+    - rahosp
+    - rahospcode
+    - diagpneumo
+    - timeduration
+    - pres
+    - ethnic
+    - charlsonmi
+    - charlsonhf
+    - charlsonpvd
+    - charlsoncvd
+    - charlsonhemi
+    - charlsonaids
+    - charlsonmld
+    - charlsonsld
+    - charlsonckd
+    - charlsonctd
+    - charlsonud
+    - charlsondem
+    - charlsondm
+    - charlsondmend
+    - charlsontumour
+    - charlsonmets
+    - charlsonlymp
+    - charlsonleuk
+    - pmhasth
+    - pmhtb
+    - pmhbronch
+    - pmhcopd
+    - pmhcf
+    - pmhfib
+    - adlbath
+    - adlshop
+    - adlmoney
+    - adltrans
+    - adlhouse
+    - immunosuprx
+    - pmhairw
+    - pmhetoh
+    - pmhivdu
+    - bcreat
+    - abxprev
+    - dateabx1
+    - timeabxb1
+    - diagmicro
+  derivedfields: []
+  pkey: [sitecode, spotidno] # list of fields
+  sitekey: sitecode
+  chks: # list of row level checks
+  notes: |
+    TablePatients as entered by Abacus
+  talias:
+    - idpatient_raw
+    - tablepatient
+
+#  ========================================
+#  = idlab - laboratory data for (SPOT)id =
+#  ========================================
+-
+  tablename: idlab
+  type: primary
+  # corrections_table: id_dvr_long
+  talias:
+    - tablelab
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - vdate
+    - wcc
+    - lymph
+    - platelets
+    - sodium
+    - creatinine
+    - urea
+    - bili
+  essentialfields:
+  - sitecode
+  - spotidno
+  - v_daymonth
+  derivedfields: []
+  pkey: [sitecode, spotidno, v_daymonth]
+  sitekey: sitecode
+  chks:
+  notes: |
+    Abacus data import
+    Problem with vdate in that it is stored as DDMM and will need converting  prior to use as a true date
+    corrections_table not specified because v_daymonth does not work as index
+
+#  ==============================================================
+#  = idlab_dated - lab data for (SPOT)id but with dates derived =
+#  ==============================================================
+-
+  tablename: idlab_dated
+  type: derived
+  derivedfields: [lab_date]
+  pkey: [sitecode, spotidno, v_daymonth]
+  sitekey: sitecode
+  sql_select: |
+    SELECT
+      lab.sitecode,
+      lab.spotidno,
+      lab.v_daymonth,
+      lab.initials,
+      lab.wcc,
+      lab.lymph,
+      lab.platelets,
+      lab.sodium,
+      lab.creatinine,
+      lab.urea,
+      lab.bili,
+      pid.cxr_dt
+    FROM idlab_ix AS lab
+    LEFT JOIN idpid AS pid
+    ON lab.sitecode = pid.sitename AND lab.spotidno = pid.spotidno;
+  chks:
+  notes: |
+    v_date derived using data from idpid
+
+#  ============================================
+#  = idvisit - daily visit date from (SPOT)id =
+#  ============================================
+-
+  tablename: idvisit
+  type: primary
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - datapro
+    - vdate
+    - vtime
+    - ccmds
+    - ccunit
+    - hrate
+    - hrhyt
+    - bpsys
+    - bpdia
+    - cvssupp
+    - cvsdose
+    - spo2
+    - fio2
+    - fio2units
+    - fio2sys
+    - fio2peep
+    - rrate
+    - ftemp
+    - gcst
+    - avpu
+    - sedated
+    - confusion
+    - abgpao2
+    - habl
+    - uvolh
+    - ccmdsrenal
+    - majorevents
+    - ccotvisit
+    - majoreventstxt
+    - majoreventcode
+    - platrx
+    - steroids
+    - limits
+    - uvold
+    - fluidin
+  essentialfields:
+    - sitecode
+    - spotidno
+    - v_date
+    - v_time
+  derivedfields: []
+  pkey: [sitecode, spotidno, v_date, v_time]
+  sitekey: sitecode # cf hierarchical model: 2nd level key
+  corrections_table: id_dvr_long # DVR responses table
+  checks:
+    - wide_pulse_pressure
+    - urine_range_24
+    - urine_range_hourly
+    - fluidin_range_high
+    - fluidin_range_low
+    - rrate_range_high
+    - spo2_range_low
+    - fio2_percent_range_high
+    - fio2_percent_range_low
+    - fio2_flow_range_high_sitespecific
+    - fio2_units_wrong_litres
+    - fio2_units_wrong_percent_sitespecific
+    - fio2_conversion_high_for_wall
+    - fio2_conversion_low_for_reservoir
+    - pao2_range_high_kpa_assumed
+    - pao2_range_low_kpa_assumed
+    - peep_range_high
+    - peep_range_low
+    - peep_not_reported
+    - low_gcs_with_sedation
+    - delirium_with_sedation
+    - temperature_range_high
+    - temperature_range_low
+    - nor_adrenaline_dose_range_high
+    - vasopressin_dose_range_high
+    - dopamine_dose_range_high
+    - lactate_range_high
+  notes: |
+    TableVisit as entered by Abacus
+  talias:
+    - tablevisit
+
+#  ====================================================
+#  = idlong -  all time sensitive data from (SPOT)id =
+#  ====================================================
+-
+  tablename: idlong
+  type: derived
+  derivedfields: []
+  pkey: [sitecode, spotidno, v_date, v_time]
+  sitekey: sitecode # cf hierarchical model: 2nd level key
+  sql_select: |
+    SELECT
+        visit.sitecode,
+        visit.spotidno,
+        visit.initials,
+        pid.dob,
+        visit.pro_or_retro,
+        visit.v_date,
+        visit.v_time,
+        daily.v_dofw,
+        pid.cxr_dt,
+        datediff(visit.v_date, pid.cxr_dt) AS study_day,
+        visit.v_ccmds,
+        visit.v_loca,
+        visit.hrate,
+        visit.hsinus,
+        visit.bpsys,
+        visit.bpdia,
+        visit.rxcvs_drug,
+        visit.rxcvs_dose,
+        visit.spo2,
+        visit.fio2,
+        visit.fio2u,
+        visit.rxfio2,
+        visit.rxpeep,
+        visit.rrate,
+        visit.temperature,
+        visit.gcst,
+        visit.avpu,
+        visit.rxsed,
+        visit.delirium,
+        visit.pao2,
+        visit.lactate,
+        visit.urine1,
+        visit.rxrrt,
+        visit.mevent,
+        visit.v_ccot,
+        visit.meventtxt,
+        visit.meventcode,
+        visit.rxplat,
+        visit.rxroids,
+        visit.rxlimits,
+        visit.urine24,
+        visit.fluidin,
+        lab.wcc,
+        lab.lymph,
+        lab.platelets,
+        lab.sodium,
+        lab.creatinine,
+        lab.urea,
+        lab.bili,
+        daily.v_ccmds_reported,
+        daily.vitals_reported,
+        daily.fbc_reported,
+        daily.ue_reported
+    FROM idvisit as visit
+    LEFT JOIN idlab_dated as lab
+    ON visit.sitecode = lab.sitecode
+      AND visit.spotidno = lab.spotidno
+      AND visit.v_date = lab.lab_date
+      AND visit.v_time = '00:01:01'
+    LEFT JOIN idlong_daily AS daily
+    ON visit.sitecode = daily.sitecode
+      AND visit.spotidno = daily.spotidno
+      AND visit.v_date = daily.v_date
+    LEFT JOIN idpid as pid
+    ON visit.sitecode = pid.sitename
+      AND visit.spotidno = pid.spotidno
+  essentialfields:
+    - sitecode
+    - spotidno
+    - v_date
+    - v_time
+  derivedfields:
+    - pf_ratio
+    - news_score
+    - news_risk
+    - fio2_std
+    - sf_ratio
+    - bpmap
+    - sofa_k
+    - sofa_c
+    - sofa_r
+    - sofa_p
+    - sofa_h
+    - sofa_n
+  checks:
+    - age_less_than_18
+    - wide_pulse_pressure
+    - urine_range_24
+    - urine_range_hourly
+    - fluidin_range_high
+    - fluidin_range_low
+    - rrate_range_high
+    - spo2_range_low
+    - fio2_percent_range_high
+    - fio2_percent_range_low
+    - fio2_flow_range_high
+    - fio2_units_wrong_litres
+    - fio2_units_wrong_percent
+    - pao2_low_for_fio2_percent
+    - pao2_low_for_fio2_litres
+    - pao2_range_high_kpa_assumed
+    - pao2_range_low_kpa_assumed
+    - peep_range_high
+    - peep_range_low
+    - peep_not_reported
+    - low_gcs_with_sedation
+    - delirium_with_sedation
+    - temperature_range_high
+    - temperature_range_low
+    - nor_adrenaline_dose_range_high
+    - vasopressin_dose_range_high
+    - dopamine_dose_range_high
+    - lactate_range_high
+    - ccmds_unreported
+    - vitals_unreported
+    # - fbc_unreported
+    # - ue_unreported
+    - visit_before_followup_period
+    - visit_after_followup_period
+  postflight: |
+   ALTER TABLE idlong DROP COLUMN abgfio2;
+  notes: |
+    - Combines idvisit, idlab, idlabuclh
+
+#  ============================
+#  = Daily SOFA score summary =
+#  ============================
+-
+  tablename: idlong_sofa
+  type: derived
+  derivedfields: []
+  pkey: [sitecode, spotidno, v_date]
+  sitekey: sitecode
+  sql_select: |
+    SELECT
+      sitecode,
+      spotidno,
+      v_date,
+      study_day,
+      min(bpmap) AS bpmap,
+      min(bpsys) AS bpsys,
+      min(platelets) AS platelets,
+      max(bili) AS bili,
+      min(pao2) AS pao2,
+      max(fio2_std) AS fio2_std,
+      max(creatinine) AS creatinine,
+      min(urine1) AS urine1,
+      urine24,
+      avpu,
+      min(gcst) AS gcst,
+      max(sofa_c) as sofa_c,
+      max(sofa_r) as sofa_r,
+      max(sofa_k) as sofa_k,
+      max(sofa_h) as sofa_h,
+      max(sofa_p) as sofa_p,
+      max(sofa_n) as sofa_n,
+      max(sofa_c + sofa_r + sofa_k + sofa_h + sofa_p + sofa_n) AS sofa_score
+    FROM idlong
+    GROUP BY sitecode, spotidno, v_date
+  notes: |
+    - depends on idlong
+
+#  ============================================================
+#  = idlong - daily summary - for checking daily completeness =
+#  ============================================================
+-
+  tablename: idlong_daily
+  type: derived
+  derivedfields: []
+  pkey: [sitecode, spotidno, v_date]
+  sitekey: sitecode
+  sql_select: |
+    SELECT
+      visit.sitecode,
+      visit.spotidno,
+      visit.v_date,
+      MOD(dayofweek(v_date) + 5, 7) + 1 AS v_dofw,
+      IF(MAX(visit.v_ccmds) IS NULL, 0, 1) AS v_ccmds_reported,
+      IF(MAX(visit.hrate) IS NULL AND MAX(visit.bpsys) IS NULL AND MAX(visit.spo2) IS NULL AND MAX(visit.temperature) IS NULL, 0, 1) AS vitals_reported ,
+      IF(MAX(lab.wcc) IS NULL AND MAX(lab.platelets) IS NULL, 0, 1) AS fbc_reported,
+      IF(MAX(lab.sodium) IS NULL AND MAX(lab.creatinine) IS NULL AND MAX(lab.urea) IS NULL, 0, 1) AS ue_reported
+    FROM idvisit AS visit
+    LEFT JOIN idlab_dated AS lab
+    ON visit.sitecode = lab.sitecode
+      AND visit.spotidno = lab.spotidno
+      AND visit.v_date = lab.lab_date
+      AND visit.v_time = '00:01:01'
+    GROUP BY visit.sitecode, visit.spotidno, visit.v_date
+  notes: |
+    - use this table for checking that data is complete for (SPOT)id wrt daily obs
+    - weekday calculation is there so that you can not ask about labs on weekends
+    - also use this data for creating daily summaries (i.e. SOFA)
+
+#  =============================================
+#  = idwide - patient level data from (SPOT)id =
+#  =============================================
+-
+  tablename: idwide
+  type: derived
+  pkey: [sitecode, spotidno]
+  corrections_table: id_dvr_wide
+  sourcetables: [idpid, idpatient]
+  sql_select: |
+    SELECT
+      idpid.sitename AS sitecode,
+      idpid.spotidno,
+      idpid.initials,
+      idpid.title,
+      idpid.dob,
+      idpid.idmrn,
+      idpid.adno_provided,
+      idpid.disable_admx,
+      idpid.flag_age_est,
+      idpid.sex,
+      idpid.hadmit_date,
+      idpid.cxr_dt,
+      idpid.cxrquad,
+      idpid.cxrnew,
+      idpid.cxrlrti,
+      idpid.cxreff,
+      idpid.fupend_date,
+      idpid.fupend_why,
+      idpid.hdc_date,
+      idpid.hdc_res,
+      idpid.sofa_d0,
+      idpid.sofa_d2,
+      idpid.disable_pt,
+      idpid.notes_idweb,
+      (IF(COUNT(pt.spotidno)!=0,1,0)) AS idpatient_crf_found,
+      (IF(COUNT(v.spotidno)!=0,COUNT(v.spotidno),0)) AS idvisit_crf_count,
+      pt.initials AS initials_crf,
+      pt.hadmit_date AS hadmit_date_crf,
+      pt.admx_lrti,
+      pt.pmh_surg,
+      pt.admx_other,
+      pt.admx_code,
+      pt.lrti_symp,
+      pt.lrti_days,
+      pt.ha_res,
+      pt.ethnicity,
+      pt.pmhmi,
+      pt.pmhhf,
+      pt.pmhpvd,
+      pt.pmhcvd,
+      pt.pmhhemi,
+      pt.pmhaids,
+      pt.pmhmld,
+      pt.pmhsld,
+      pt.pmhckd,
+      pt.pmhctd,
+      pt.pmhud,
+      pt.pmhdem,
+      pt.pmhdm,
+      pt.pmhdmend,
+      pt.pmhtumour,
+      pt.pmhmets,
+      pt.pmhlymph,
+      pt.pmhleuk,
+      pt.pmhasth,
+      pt.pmhtb,
+      pt.pmhbronch,
+      pt.pmhcopd,
+      pt.pmhcf,
+      pt.pmhfib,
+      pt.adlbath,
+      pt.adlshop,
+      pt.adlmoney,
+      pt.adltrans,
+      pt.adlhouse,
+      pt.immrx,
+      pt.immair,
+      pt.immetoh,
+      pt.immiv,
+      pt.creat_base,
+      pt.abx_prev,
+      pt.abx1date,
+      pt.abx1time,
+      pt.lrti_micro,
+      np.notes_id,
+      nl.notes_idlab,
+      nu.notes_idlabuclh,
+      mris.date_trace,
+      mris.dead
+    FROM idpid
+    LEFT JOIN idpatient AS pt
+    ON idpid.sitename = pt.sitecode AND idpid.spotidno = pt.spotidno
+    LEFT JOIN idnotesp AS np
+    ON idpid.sitename = np.sitecode AND idpid.spotidno = np.spotidno
+    LEFT JOIN idnotesl AS nl
+    ON idpid.sitename = nl.sitecode AND idpid.spotidno = nl.spotidno
+    LEFT JOIN idnotesu AS nu
+    ON idpid.sitename = nu.sitecode AND idpid.spotidno = nu.spotidno
+    LEFT JOIN idvisit AS v
+    ON idpid.sitename = v.sitecode AND idpid.spotidno = v.spotidno
+    LEFT JOIN mris_final AS mris
+    ON mris.patient_createdat = idpid.patient_createdat AND mris.sitename = idpid.sitename
+    GROUP BY idpid.sitename, idpid.spotidno
+  sitekey: sitecode
+  derivedfields:
+    - age_spotid
+    - charlson_score
+  essentialfields:
+    - sitecode
+    - spotidno
+    - fupend_why
+    - fupend_date
+    - hdc_date
+    - hdc_res
+    - hadmit_date
+    - ha_res
+    - lrti_symp
+    - sex
+    - dob
+    - idnhs
+    - idpcode
+    - abx1date
+    - abx1time
+  checks:
+    - cxr_before_hospital_admission
+    - discharge_before_admission
+    - followup_after_discharge
+    - death_reported_but_residence_not_dead
+    - antibiotics_before_admission
+    - antibiotics_after_discharge
+    - initial_assessment_not_found
+    - daily_assessments_missing
+  postflight: |
+    ALTER TABLE idwide DROP COLUMN dob;
+
+#  ==============================
+#  = sites table from spotlight =
+#  ==============================
+
+-
+  tablename: sites
+  notes: |
+    Primary (non-derived) site level data
+    Currently this is sitesFinal - use this as start code
+    But generate using fresh code - i.e. think of this as a fork
+  pkey: [sitename] # primary key
+  fkey: # Foreign keys
+  -
+    fname: icode
+    ftable:
+      - patients
+      - units
+    fname: sitecode
+    ftable: idpatients
+
+#  ==============================
+#  = patient crf notes - spotid =
+#  ==============================
+
+-
+  tablename: idnotesp
+  type: primary
+  pkey: [sitecode, spotidno]
+  sitekey: sitecode
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - tablepatientnotes
+  essentialfields:
+    - sitecode
+    - spotidno
+  talias:
+    - tablepatientnotes
+
+#  ==========================
+#  = lab crf notes - spotid =
+#  ==========================
+-
+  tablename: idnotesl
+  type: primary
+  pkey: [sitecode, spotidno]
+  sitekey: sitecode
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - tablelabnotes
+  essentialfields:
+    - sitecode
+    - spotidno
+  talias:
+    - tablelabnotes
+
+#  =============================
+#  = lab - uclh notes - spotid =
+#  =============================
+-
+  tablename: idnotesu
+  type: primary
+  pkey: [sitecode, spotidno]
+  sitekey: sitecode
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - biologicalsamplingnotes
+  essentialfields:
+    - sitecode
+    - spotidno
+  talias:
+    - biologicalsamplinguclhnotes
+
+#  ============================
+#  = lab data - spotid @ UCLH =
+#  ============================
+-
+  tablename: idlabuclh
+  type: primary
+  pkey: [sitecode, spotidno, v_date, v_time]
+  sitekey: sitecode
+  sourcefields:
+    - sitecode
+    - spotidno
+    - patientid
+    - sampledate
+    - sampletime
+    - 1stpax
+    - 2ndpax
+    - serumstorage
+    - serumsample
+    - edta
+    - cortisol
+    - ft4
+    - ft3
+    - tsh
+  essentialfields:
+    - v_date
+    - v_time
+    - sitecode
+    - spotidno
+  talias:
+    - biologicalsamplinguclh
+-
+  tablename: mortality_uclh
+  type: primary
+  pkey: [spotidno]
+  sourcefields:
+    - spotidno
+    - initials
+    - dob
+    - cxr_dt
+    - mort_hosp
+    - hdc_date
+  essentialfields:
+    - spotidno
+  talias:
+    - mortality_uclh
+-
+  tablename: lab_immunoglobulins
+  type: primary
+  pkey: [spotidno, sampleno]
+  sourcefields:
+    - spotidno
+    - sampleno
+    - id_immunoglobulin
+    - igg
+    - iga
+    - igm
+    - igkf
+    - iglf
+  essentialfields:
+    - spotidno
+    - sampleno
+-
+  tablename: lab_complement
+  type: primary
+  pkey: [spotidno, sampleno]
+  sourcefields:
+    - spotidno
+    - sampleno
+    - il2
+    - il4
+    - il6
+    - il10
+    - tnf
+    - ifn
+    - il17a
+    - c3a
+    - c5a
+  essentialfields:
+    - spotidno
+    - sampleno
+-
+  tablename: id_samples
+  type: derived
+  pkey: [spotidno, sampletimestamp]
+  sql_select: |
+    SELECT
+      u.spotidno,
+      i.cxr_dt,
+      i.fupend_date,
+      datediff(u.v_date,i.cxr_dt) - 1 AS study_day,
+      TIMESTAMP(u.v_date, u.v_time) AS sampletimestamp,
+      count(c.spotidno) AS sample_sequence,
+      TIMESTAMPDIFF(HOUR,min.v_ts, (TIMESTAMP(u.v_date, u.v_time))  ) AS sample_delta,
+      v.v_ccmds,
+      IF(u.smppax1 OR u.smppax2, 1, 0) AS smppax,
+      u.smpserum,
+      u.smpedta,
+      u.cortisol,
+      u.ft4,
+      u.tsh
+    FROM idlabuclh AS u
+    JOIN (SELECT spotidno, MIN(TIMESTAMP(v_date, v_time)) AS v_ts FROM idlabuclh GROUP BY spotidno) AS min
+    ON u.spotidno = min.spotidno
+    LEFT JOIN idpid AS i
+    ON u.spotidno = i.spotidno AND 'ucl' = i.sitename
+    JOIN (SELECT spotidno, TIMESTAMP(v_date, v_time) AS v_ts  FROM idlabuclh) AS c
+    ON u.spotidno = c.spotidno AND TIMESTAMP(u.v_date, u.v_time) >= c.v_ts
+    LEFT JOIN (SELECT sitecode, spotidno, v_date, MAX(v_ccmds) AS v_ccmds FROM idvisit GROUP BY sitecode, spotidno, v_date) AS v
+    ON u.spotidno = v.spotidno AND 'ucl' = v.sitecode AND u.v_date = v.v_date
+    GROUP BY u.spotidno, u.v_date, u.v_time
+    ORDER BY spotidno, sampletimestamp;
+-
+  tablename: id_samples_data
+  type: derived
+  pkey: [spotidno, sampletimestamp]
+  sql_select: |
+    SELECT
+      'ucl' AS sitecode,
+      s.spotidno,
+      s.sampletimestamp,
+      date(sampletimestamp) as v_date,
+      time(sampletimestamp) as v_time,
+      s.sample_sequence,
+      s.cortisol,
+      s.ft4,
+      s.tsh,
+      c.il2, c.il4, c.il6, c.il10, c.tnf, c.il17a, c.c3a, c.c5a,
+      i.igg, i.iga, i.igm, i.igkf, i.iglf
+    FROM id_samples AS s
+    LEFT JOIN lab_complement AS c
+    ON s.spotidno = c.spotidno AND s.sample_sequence = c.sampleno
+    LEFT JOIN lab_immunoglobulins AS i
+    ON s.spotidno = i.spotidno AND s.sample_sequence = i.sampleno
+    ORDER BY spotidno, sampletimestamp;
+
+-
+  tablename: phd_sites
+  type: primary
+  pkey: [icode]
+  sourcefields:
+    - icode
+    - dorisname
+    - key_icnarc
+    - lite_open
+    - lite_close
+    - id_open
+    - id_close
+    - lite_protocol
+    - ccot
+    - ccot_days
+    - ccot_start
+    - ccot_hours
+    - ccot_senior
+    - ccot_consultant
+    - ccot_cover_ward
+    - ccot_cover_ae
+    - ccot_cover_obs
+    - ccot_cover_mau
+    - ccot_cover_theatre
+    - ews_true
+    - ews_hr
+    - ews_bp
+    - ews_spo2
+    - ews_rr
+    - ews_gcs
+    - ews_uvol
+    - ews_pain
+    - ews_other
+    - ews_trigger
+    - ews_electronic
+    - admit_without_review
+    - units_notincmp
+    - units_notincmp_l3
+    - units_incmp_rrt
+    - site_postcode
+    - cmp_beds_persite
+    - site_teaching
+  notes: |
+    NOTE: 2012-10-09 - I haven't documented how to create this table! Maybe in spot code
+    NOTE: 2012-10-09 - manually added fields for site_postcode, cmp_beds_persite, and site_teaching from sites_via_directory
+    NOTE: 2012-12-21 - looked in spot, spot_early etc and cannot find this ... I think it might be a merge from sitesFinal and sites_via_directory
+    CHANGED: 2012-12-21 - re-create table as above as derived with the following dependencies
+      - sitesFinal
+      - sites_via_directory
+    NOTE: 2013-01-01 - recurring problem
+      - I think the above note is true but the simplest? solution is to stop using this table
+      - Hence will now move all references to phd_sites to sitesFinal
+      - sitesFinal is a 'primary' table that will need to be 'imported' into other databases
+-
+  tablename: sitesfinal
+  type: primary
+  pkey: [icode]
+  sourcefields:
+    - icode
+    - dorisname
+    - key_icnarc
+    - site_postcode
+    - lite_open
+    - lite_close
+    - allreferrals
+    - unit_ae
+    - unit_mau
+    - ccot
+    - ccot_days
+    - ccot_start
+    - ccot_hours
+    - ccot_wte
+    - ccot_senior
+    - ccot_consultant
+    - ccot_cover_ward
+    - ccot_cover_ae
+    - ccot_cover_obs
+    - ccot_cover_mau
+    - ccot_cover_theatre
+    - ews_true
+    - ews_hr
+    - ews_bp
+    - ews_spo2
+    - ews_rr
+    - ews_gcs
+    - ews_uvol
+    - ews_pain
+    - ews_other
+    - ews_trigger
+    - ews_electronic
+    - admit_without_review
+    - units_notincmp
+    - units_notincmp_l3
+    - units_incmp_rrt
+    - cmp_beds_persite
+  notes: |
+    NOTE: 2013-01-01 - should replace all references to phd_sites
+-
+  tablename: headsfinal
+  type: primary
+  pkey: [icode, idmrn, v_timestamp]
+  sourcefields:
+    - namesite
+    - icode
+    - idpatient
+    - idvisit
+    - idmrn
+    - mmtvisit
+    - studymonth
+    - country
+    - sex
+    - dob
+    - idnhs_available
+    - idpcode_available
+    - date_opened
+    - date_closed
+    - elgdate
+    - elgreport_heads
+    - elgreport_tails
+    - elgprotocol
+    - possible_duplicate
+    - filled_fields_count
+    - prospective
+    - eventtype
+    - icnno
+    - adno
+    - matchtype
+    - match_is_ok
+    - response_tails
+    - response_tails_note
+    - response_heads_date
+    - response_heads
+    - response_heads_note
+    - ccmpdspre
+    - sepsis
+    - sepsite
+    - vdelay
+    - vdelaynm
+    - vstatus
+    - vtimely
+    - vward
+    - abgunit
+    - abghco3
+    - abghco3nm
+    - abgpaco2
+    - abgpaco2nm
+    - abgpao2
+    - abgpao2nm
+    - abgfio2
+    - abgfio2nm
+    - abgph
+    - abgphnm
+    - avpu
+    - bpdia
+    - bpnm
+    - bpsys
+    - consnm
+    - cvssupp
+    - cvssuppnm
+    - dialysis
+    - fio2
+    - fio2unit
+    - fio2sys
+    - fio2nm
+    - gcse
+    - gcsm
+    - gcsv
+    - gcst
+    - habl
+    - hablnm
+    - hbilirnm
+    - hbilir
+    - hcreat
+    - hcreatnm
+    - hna
+    - hnanm
+    - hrate
+    - hratenm
+    - hrhyt
+    - obs
+    - plat
+    - platnm
+    - pneurs
+    - rrate
+    - rrnm
+    - spo2
+    - spo2nm
+    - temp
+    - tempnm
+    - urea
+    - ureanm
+    - urvoltime
+    - uvol
+    - uvolnm
+    - wcc
+    - wccnm
+    - abx
+    - ccmdspost
+    - followup
+    - notes
+    - vout
+    - voutcmp
+    - disabled
+    - createdby
+    - createdat
+    - abgnm
+    - discharged
+    - initialvisit
+    - cmpadno
+    - date_event
+    - dead
+    - occupancy
+    - occupancy_active
+    - free_beds_cmp
+    - cmp_beds_max
+  postflight: |
+      ALTER TABLE headsfinal ADD INDEX (icode, idmrn);
+-
+  tablename: tailsfinal
+  type: primary
+  pkey: [icnno, adno]
+  sitekey: icode
+  sourcefields:
+    - icode
+    - studymonth
+    - dorisname
+    - icnno
+    - adno
+    - idvisit
+    - idmrn
+    - v_timestamp
+    - matchtype
+    - match_is_ok
+    - idpcode
+    - dob
+    - ethnicity
+    - sex
+    - daicu
+    - taicu
+    - cpr_v3
+    - loca
+    - classns
+    - htloca
+    - hloca
+    - ploca
+    - tuidi
+    - typeiha
+    - pa_v3
+    - raicu1
+    - dead_icu
+    - yhlos
+    - yulos
+    - ahsurv
+    - yusurv
+    - dod
+    - tod
+    - ddicu
+    - tdicu
+    - hosptype
+    - icutype
+    - unit_name
+    - cmp_icubeds_persite
+    - status
+    - withinsh
+    - lctemp
+    - hctemp
+    - lnctemp
+    - hnctemp
+    - lsys
+    - hsys
+    - lhr
+    - hhr
+    - lnvrr
+    - hnvrr
+    - lvrr
+    - hvrr
+    - ilpo
+    - filpo
+    - philpo
+    - lph_v3
+    - lna
+    - hna
+    - hu
+    - lcreat
+    - hcreat
+    - up
+    - lwbc
+    - hwbc
+    - ltot
+    - imscore
+    - ap2aps
+    - ap2score
+    - ap2probuk
+    - elgage
+    - elgcpr
+    - elgemx
+    - elgfirst
+    - elgward
+    - elgoward
+    - elgtrans
+    - elgthtr
+    - elghdu
+    - elgcore
+    - elgall
+    - icu_delay
+    - icu_delay_hours
+    - v_ccot_cmpd
+    - v_ccot_cmpd_date
+    - elgdate
+    - elgreport_first
+    - elgreport_heads
+    - elgreport_tails
+    - response_tails
+    - response_tails_note
+    - response_heads
+    - response_heads_note
+  postflight: |
+      ALTER TABLE tailsfinal ADD PRIMARY KEY (icnno, adno);
+      ALTER TABLE tailsfinal ADD INDEX (idvisit);
+  notes: |
+    - this is one of the key PhD outputs:
+    - not all fields have been defined as many come from CMP
+    - Run this code before cleaning and tidying tables
+-
+  tablename: tailsfinal_elgdate
+  type: derived
+  pkey: [icnno, adno]
+  sitekey: icode
+  sql_select: |
+    SELECT
+      icode,
+      studymonth,
+      dorisname,
+      icnno,
+      adno,
+      idvisit,
+      idmrn,
+      v_timestamp,
+      matchtype,
+      match_is_ok,
+      idpcode,
+      dob,
+      ethnicity,
+      sex,
+      daicu,
+      taicu,
+      cpr_v3,
+      loca,
+      classns,
+      htloca,
+      hloca,
+      ploca,
+      tuidi,
+      typeiha,
+      pa_v3,
+      raicu1,
+      dead_icu,
+      dod,
+      tod,
+      ddicu,
+      tdicu,
+      hosptype,
+      icutype,
+      unit_name,
+      cmp_icubeds_persite,
+      status,
+      withinsh,
+      lctemp,
+      hctemp,
+      lnctemp,
+      hnctemp,
+      lsys,
+      hsys,
+      lhr,
+      hhr,
+      lnvrr,
+      hnvrr,
+      lvrr,
+      hvrr,
+      ilpo,
+      filpo,
+      philpo,
+      lph_v3,
+      lna,
+      hna,
+      hu,
+      lcreat,
+      hcreat,
+      up,
+      lwbc,
+      hwbc,
+      ltot,
+      hbl,
+      imscore,
+      im3prob,
+      ap2aps,
+      ap2score,
+      ap2probuk,
+      elgage,
+      elgcpr,
+      elgemx,
+      elgfirst,
+      elgward,
+      elgoward,
+      elgtrans,
+      elgthtr,
+      elghdu,
+      icu_delay,
+      icu_delay_hours,
+      v_ccot_cmpd,
+      v_ccot_cmpd_date,
+      elgdate,
+      elgreport_first,
+      elgreport_heads,
+      elgreport_tails,
+      response_tails,
+      response_tails_note,
+      response_heads,
+      response_heads_note
+    FROM tailsFinal_elgdate_ix
+  postflight: |
+      ALTER TABLE tailsfinal_elgdate ADD PRIMARY KEY (icnno, adno);
+      ALTER TABLE tailsfinal_elgdate ADD INDEX (idvisit);
+  notes: |
+    NOTE: 2012-11-12 - temp table while working on spot_traj
+    - just transfer across those from tailsFinal who meet elgDate criteria
+    - you may need to change the name during the import process to get this to work?
+-
+  tablename: cmpd
+  type: primary
+  pkey: [icnno, adno]
+-
+  tablename: tailsmini
+  type: derived
+  pkey: [icnno, adno]
+  sitekey: icnno
+  preflight: |
+    ALTER TABLE tailsmini_ix ADD INDEX (icnno);
+  sql_select: |
+    SELECT
+      u.icode,
+      tm.icnno,
+      tm.adno,
+      tm.status,
+      tm.daicu,
+      tm.taicu,
+      tm.cpr_v3,
+      tm.pa_v3,
+      tm.withinsh,
+      tm.loca,
+      tm.hloca,
+      tm.ploca,
+      tm.classns,
+      tm.htloca,
+      tm.tuidi,
+      tm.typeiha,
+      tm.ddicu,
+      tm.tdicu,
+      tm.dod,
+      tm.tod,
+      tm.dtw,
+      tm.ttw,
+      tm.dwfrd,
+      tm.twfrd,
+      tm.rdis_v3,
+      tm.dbricu,
+      tm.tbricu,
+      tm.dead_icu,
+      tm.tnessd,
+      tm.icu_delay,
+      tm.v_ccot_cmpd,
+      tm.icu_delay_hours
+    FROM tailsmini_ix AS tm
+    LEFT JOIN unitsfinal AS u
+    ON tm.icnno = u.icnno
+    WHERE u.icode IS NOT NULL
+  postflight:
+  notes: |
+    Limited view of CMPD data permitting calculation
+      - of occupancy etc
+      - eligibility criteria
+    tailsMini is a small limited version of the full tails table
+-
+  tablename: unitsfinal
+  type: primary
+  pkey: [idunit, icnno]
+  sourcefields:
+    - icode
+    - idunit
+    - icnno
+    - dropflag
+    - cmptrue
+    - spottrue
+    - dorisname
+    - unit_name
+    - unit_type
+    - date_cmp_start
+    - date_cmp_finish
+    - cmp_beds_min
+    - cmp_beds_max
+-
+  tablename: lite_summ_monthly
+  type: primary
+  pkey: [icnno, studymonth]
+  sourcefields:
+    - icode
+    - studymonth
+    - icnno
+    - dropflag
+    - spottrue
+    - cmpd_month_miss
+    - cmp_admx_permonth
+    - match_quality_by_month
+    - match_quality_by_site
+    - studymonth_protocol_problem
+    - studymonth_allreferrals
+    - site_quality_q1
+    - site_quality_by_month
+    - count_patients
+    - count_all_eligible
+-
+  tablename: working_early
+  type: derived
+  pkey: [idvisit]
+  sitekey: icode
+  preflight: |
+    DROP TABLE IF EXISTS headsfinal_first;
+    CREATE TEMPORARY TABLE headsfinal_first AS SELECT icode, idmrn, min(v_timestamp) AS v_timestamp FROM headsfinal GROUP BY icode, idmrn;
+    ALTER  TABLE headsfinal_first ADD INDEX(icode, idmrn);
+    ALTER  TABLE headsfinal_first ADD INDEX(v_timestamp);
+    DROP TEMPORARY TABLE IF EXISTS q;
+    CREATE TEMPORARY TABLE q
+      SELECT
+        icode,
+        studymonth,
+        site_quality_by_month,
+        site_quality_q1,
+        studymonth_protocol_problem,
+        studymonth_allreferrals,
+        cmpd_month_miss,
+        cmp_admx_permonth,
+        match_quality_by_site,
+        count_patients,
+        count_all_eligible
+      FROM lite_summ_monthly
+      GROUP BY icode, studymonth;
+  sql_select: |
+     SELECT
+        h.dorisname,
+        h.icode,
+        q.match_quality_by_site,
+        q.site_quality_q1,
+        q.site_quality_by_month,
+        q.studymonth_protocol_problem,
+        q.studymonth_allreferrals,
+        q.cmpd_month_miss,
+        q.cmp_admx_permonth,
+        q.count_patients,
+        q.count_all_eligible,
+        h.idpatient,
+        h.idvisit,
+        h.idmrn,
+        h.v_timestamp,
+        IF(h.v_timestamp = hmin.v_timestamp, 1, 0) AS elgfirst_episode,
+        h.studymonth,
+        h.country,
+        h.sex,
+        h.dob,
+        CONVERT(round(datediff(h.v_timestamp, h.dob)/365.25, 1),SIGNED) AS age,
+        h.lite_open,
+        h.lite_close,
+        h.elgdate,
+        h.elgreport_heads,
+        h.elgreport_tails,
+        h.elgprotocol,
+        h.allreferrals,
+        h.possible_duplicate,
+        h.filled_fields_count,
+        h.icnno,
+        h.adno,
+        h.matchtype,
+        h.match_is_ok,
+        h.response_tails,
+        h.response_tails_note,
+        h.response_heads,
+        h.response_heads_note,
+        h.v_ccmds,
+        h.sepsis,
+        h.sepsis_site,
+        h.v_delay,
+        h.v_arrest,
+        h.v_timely,
+        h.v_ward,
+        h.abgunit,
+        h.hco3,
+        h.paco2,
+        h.pao2,
+        h.abgfio2,
+        h.ph,
+        h.avpu,
+        h.bpdia,
+        h.bpsys,
+        h.rxcvs_sofa,
+        h.rxrrt,
+        h.fio2,
+        h.fio2u,
+        h.rxfio2,
+        h.gcse,
+        h.gcsm,
+        h.gcsv,
+        h.gcst,
+        h.lactate,
+        h.bili,
+        h.creatinine,
+        h.sodium,
+        h.hrate,
+        h.hsinus,
+        h.vitals,
+        h.platelets,
+        h.gcs_presed,
+        h.rrate,
+        h.spo2,
+        h.temperature,
+        h.urea,
+        h.urine_period,
+        h.urine_vol,
+        h.wcc,
+        h.v_abx,
+        h.v_ccmds_rec,
+        h.v_disposal,
+        h.notes_light,
+        h.rx_visit,
+        h.v_cmpadmx,
+        h.disable_admx,
+        h.v_dc,
+        h.v_first,
+        h.adno_provided,
+        h.date_trace,
+        h.dead,
+        h.occupancy,
+        h.occupancy_active,
+        h.free_beds_cmp,
+        h.cmp_beds_max,
+        t.daicu,
+        t.taicu,
+        t.elgcpr,
+        t.elgemx,
+        t.elgfirst,
+        t.elgward,
+        t.elgoward,
+        t.elgtrans,
+        t.elgthtr,
+        t.elghdu,
+        t.v_ccot_cmpd,
+        t.elgcore,
+        t.elgall,
+        t.withinsh,
+        t.dead_icu,
+        t.ddicu,
+        t.tdicu,
+        t.dod,
+        t.tod,
+        t.loca,
+        t.ploca,
+        t.htloca,
+        t.typeiha,
+        t.hloca,
+        t.ahsurv
+      FROM headsfinal AS h
+      LEFT JOIN tailsfinal AS t
+      ON h.idvisit = t.idvisit
+      LEFT JOIN headsfinal_first AS hmin
+      ON h.icode = hmin.icode AND h.idmrn = hmin.idmrn
+      LEFT JOIN q
+      ON h.icode = q.icode AND h.studymonth = q.studymonth
+      LEFT JOIN (SELECT icode, count(DISTINCT studymonth) AS n FROM headsfinal GROUP BY icode) AS months
+      ON h.icode = months.icode; 
+  postflight:
+  derivedfields:
+    - icu_discharge
+    - icu_admit
+    - uvol1h
+    - fio2_std
+    - pf_ratio
+    - sf_ratio
+    - bpmap
+    - sofa_r
+    - sofa_p
+    - sofa_c
+    - sofa_k
+    - sofa_h
+    - sofa_n
+    - sofa_score
+    - sepsis2001
+    - news_score
+    - news_risk
+    - icnarc_score
+  checks:
+    - icu_admit_before_discharge
+    - icu_admit_before_visit
+    - MRIS_ICNARC_death_mismatch
+    - MRIS_ICNARC_survival_mismatch
+    - MRIS_spotlight_date_mismatch
+    - wide_pulse_pressure
+    - urine_range_timed
+    - rrate_range_high
+    - spo2_range_low
+    - fio2_percent_range_high
+    - fio2_percent_range_low
+    - fio2_flow_range_high
+    - fio2_units_wrong_litres
+    - fio2_units_wrong_percent
+    - pao2_low_for_fio2_percent
+    - pao2_low_for_fio2_litres
+    - pao2_range_high_kpa
+    - pao2_range_low_kpa
+    - pao2_range_high_mmhg
+    - pao2_range_low_mmhg
+    - temperature_range_high
+    - temperature_range_low
+    - lactate_range_high
+-
+  tablename: heads_previous_admission
+  type: derived
+  pkey: [icode, idvisit]
+  preflight: |
+    DROP TEMPORARY TABLE IF EXISTS tt;
+    CREATE TEMPORARY TABLE tt ENGINE MEMORY
+      SELECT icode, daicu, taicu FROM tailsfinal;
+    ALTER TABLE tt ADD INDEX (icode);
+    ALTER TABLE tt ADD COLUMN icu_timestamp TIMESTAMP;
+    UPDATE tt SET icu_timestamp = TIMESTAMP(daicu, taicu);
+    ALTER TABLE tt ADD INDEX (icu_timestamp);
+    DROP TEMPORARY TABLE IF EXISTS hh;
+    CREATE TEMPORARY TABLE hh ENGINE MEMORY
+      SELECT icode, idvisit, v_timestamp FROM headsfinal;
+    ALTER TABLE hh ADD INDEX (v_timestamp);
+    ALTER TABLE hh ADD INDEX (icode);
+  sql_select: |
+    DROP TABLE IF EXISTS heads_previous_admission;
+    CREATE TABLE heads_previous_admission
+    SELECT
+      h.icode,
+      h.idvisit,
+      h.`v_timestamp`,
+      IF(TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) IN (0,1,2,3,4),
+        count(t.icode),0)
+        AS recent_admx_count,
+      MIN(TIMESTAMPDIFF(MINUTE,t.icu_timestamp,h.v_timestamp))
+        AS recent_admx_time
+    FROM
+     hh AS h
+    LEFT JOIN
+     tt AS t
+    ON
+      h.icode = t.icode
+      AND
+      TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) < 12
+      AND
+      TIMESTAMPDIFF(HOUR,t.icu_timestamp,h.v_timestamp) > 0
+    GROUP BY h.idvisit;
+  postflight:
+  notes: |
+    - find the time of the preceding admission with respect to the time of visit
+    - counts the number of admissions in the last 4 hours
+-
+  tablename: sites_within_hes
+  type: derived
+  pkey: [hes_code, icode]
+  preflight:
+  sql_select: |
+    SELECT
+      h.sha,
+      h.hes_code,
+      m.hospname AS dorisname,
+      h.hes_admissions,
+      h.hes_emergencies,
+      h.hes_daycase,
+      h.hes_genmed,
+      IF(s.icode IS NOT NULL, s.icode, "00S") as icode
+      FROM hes_providers AS h
+      LEFT JOIN metasiteunit AS m
+        ON h.hes_code = m.hes_code
+      LEFT JOIN sitesfinal AS s
+        ON m.icode = s.icode
+      GROUP BY h.hes_code, s.icode
+      ORDER BY h.sha, m.hospname;
+  postflight:
+  notes: |
+    - produces a table of all sites with HES data
+    - rename hospname to dorisname (not sitename else it is abbreviated)
+    - restricted fields to just admissions / daycase / emergencies
+-
+  tablename: sites_within_cmpd
+  type: derived
+  pkey: [dorisname]
+  preflight: |
+    DROP TEMPORARY TABLE IF EXISTS jj;
+    CREATE TEMPORARY TABLE jj
+    SELECT icnno, hospname, icubeds FROM spot.tailsshort GROUP BY icnno;
+    DROP TEMPORARY TABLE IF EXISTS beds;
+    CREATE TEMPORARY TABLE beds
+      SELECT hospname, COUNT(DISTINCT icnno) as units_incmp, SUM(icubeds) as cmp_beds_persite
+      FROM jj GROUP BY hospname;
+    ALTER TABLE beds ADD INDEX(hospname);
+    DROP TEMPORARY TABLE IF EXISTS tmp;
+    CREATE TEMPORARY TABLE tmp
+    SELECT
+      msu.icode,
+      t.hospname AS dorisname,
+      count(DISTINCT IF(t.withinsh=0,concat(t.icnno,t.adno),NULL)) AS cmp_patients,
+      round(count(DISTINCT IF(t.withinsh=0,concat(t.icnno,t.adno),NULL))
+         / (count(DISTINCT MONTH(daicu)))) AS cmp_patients_permonth,
+      t.hosptype AS site_teaching,
+      beds.cmp_beds_persite,
+      beds.units_incmp,
+      /* flag if there are admissions from other general critical care units at the site */
+      round(count(DISTINCT IF(t.pa_v3 = 'l' AND t.typeiha = 'g' AND
+          (t.loca IN ('I','H','U') OR t.ploca IN ('W')),concat(t.icnno,t.adno), NULL))
+          / count(t.icnno) * 100) AS tails_othercc,
+      /* percentage emergency CORE ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgCore = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(t.icnno) * 100) AS tails_core_percent,
+       /* percentage ALL emergency ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgAll = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(t.icnno) * 100) AS tails_all_percent,
+      /* unit mortality CORE emergency ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgCore = 1 AND yusurv = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w'),concat(t.icnno,t.adno),NULL)) * 100) AS tails_core_umortality,
+      /* hospital mortality CORE emergency ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgCore = 1 AND t.ahsurv = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w'),concat(t.icnno,t.adno),NULL)) * 100) AS tails_core_hmortality,
+      /* unit mortality ALL emergency ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgAll = 1 AND yusurv = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w'),concat(t.icnno,t.adno),NULL)) * 100) AS tails_all_umortality,
+      /* hospital mortality ALL emergency ward admissions at the site */
+      round(count(DISTINCT
+          IF(t.elgAll = 1 AND t.ahsurv = 1,concat(t.icnno,t.adno),NULL)
+          ) / count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w'),concat(t.icnno,t.adno),NULL)) * 100) AS tails_all_hmortality,
+      round(
+        count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w') AND t.tnessa = 'd',concat(t.icnno,t.adno),NULL))
+        / count(DISTINCT IF(t.pa_v3 = 'l' AND (t.loca='w' OR t.ploca='w'),concat(t.icnno,t.adno),NULL)) * 100) AS tails_wardemx_delayed
+    FROM spot.tailsshort AS t
+    LEFT JOIN metasiteunit AS msu
+    ON msu.hospname = t.hospname
+    LEFT JOIN sitesfinal AS s
+    ON msu.icode = s.icode
+    LEFT JOIN beds
+    ON t.hospname = beds.hospname
+    WHERE (s.icode IS NOT NULL AND t.daicu >= s.lite_open AND t.daicu <= s.lite_close)
+      OR (s.icode IS NULL AND t.hospname != 'aardvark')
+    GROUP BY t.hospname;
+    DELETE FROM tmp WHERE dorisname = "";
+    SELECT * FROM tmp;
+  sql_select: |
+      SELECT
+        icode,
+        dorisname,
+        cmp_patients,
+        cmp_patients_permonth,
+        site_teaching,
+        cmp_beds_persite,
+        units_incmp,
+        tails_othercc,
+        tails_core_percent,
+        tails_core_umortality,
+        tails_core_hmortality,
+        tails_all_percent,
+        tails_all_umortality,
+        tails_all_hmortality,
+        tails_wardemx_delayed
+      FROM tmp;
+  postflight:
+  notes: |
+    - needs access to spot database as uses spot.tailsshort
+-
+  tablename: sites_early
+  type: derived
+  pkey: [icode]
+  preflight: |
+    /* preflight steps */
+    DROP TEMPORARY TABLE IF EXISTS tails_early_by_site;
+    CREATE TEMPORARY TABLE tails_early_by_site
+    SELECT
+      t.icode,
+      s.dorisname,
+      count(DISTINCT t.icnno) AS units_incmp,
+      /* flag if cmpd data missing from start / end study */
+      IF(datediff(min(t.daicu), s.lite_open) > 7, 1, 0) AS cmpd_start_miss,
+      IF(datediff(max(t.daicu), s.lite_close) < -7, 1, 0) AS cmpd_end_miss,
+      sc.tails_core_percent,
+      sc.tails_all_percent,
+      sc.tails_othercc,
+      sc.cmp_patients_permonth,
+      sc.site_teaching,
+      sc.tails_core_umortality,
+      sc.tails_core_hmortality,
+      sc.tails_all_umortality,
+      sc.tails_all_hmortality,
+      sc.tails_wardemx_delayed
+    FROM tailsfinal AS t
+    LEFT JOIN sitesfinal AS s
+      ON t.icode = s.icode
+    LEFT JOIN sites_within_cmpd AS sc
+      ON t.icode = sc.icode
+    WHERE (t.daicu >= s.lite_open AND t.daicu <= s.lite_close)
+    GROUP BY t.icode;
+    ALTER TABLE tails_early_by_site ADD KEY (icode);
+    SELECT * FROM tails_early_by_site;
+    DROP TEMPORARY TABLE IF EXISTS hcount;
+    /* Work out heads to tails ratio per site */
+    DROP TEMPORARY TABLE IF EXISTS ht_ratio;
+    CREATE TEMPORARY TABLE ht_ratio
+      SELECT
+        q.icode,
+        q.namesite,
+        SUM(q.count_patients)/SUM(q.count_core_eligible) AS ht_ratio,
+        AVG(q.studymonth_allreferrals)
+      FROM spot.lite_summ_monthly AS q
+      WHERE q.cmpd_month_miss = 0 AND q.dropflag != 1 AND q.spottrue = 1
+      GROUP BY icode;
+    SELECT icode, ht_ratio FROM ht_ratio;
+  sql_select: |
+    SELECT
+      s.icode,
+      s.dorisname,
+      s.site_postcode,
+      s.cmp_beds_persite,
+      s.key_icnarc,
+      s.lite_open,
+      s.lite_close,
+      s.allreferrals,
+      hes.hes_admissions,
+      hes.hes_daycase,
+      hes.hes_emergencies,
+      hes.hes_genmed,
+      s.ccot,
+      s.ccot_days,
+      s.ccot_start,
+      s.ccot_hours,
+      s.ccot_senior,
+      s.ccot_consultant,
+      s.ccot_cover_ward,
+      s.ccot_cover_ae,
+      s.ccot_cover_obs,
+      s.ccot_cover_mau,
+      s.ccot_cover_theatre,
+      s.ews_true,
+      s.ews_hr,
+      s.ews_bp,
+      s.ews_spo2,
+      s.ews_rr,
+      s.ews_gcs,
+      s.ews_uvol,
+      s.ews_pain,
+      s.ews_other,
+      s.ews_trigger,
+      s.ews_electronic,
+      s.admit_without_review,
+      s.units_notincmp,
+      s.units_notincmp_l3,
+      s.units_incmp_rrt,
+      IF(s.units_notincmp = 0 AND s.units_notincmp_l3 =0, 1, 0) all_cc_in_cmp,
+      round(sum(h.v_cmpadmx) / count(IF(h.v_disposal IN ('c', 'd'),1,NULL)) * 100) AS v_cmpadmx_pct,
+      count(h.icode) AS heads_count,
+      datediff(max(h.v_timestamp),min(h.v_timestamp)) AS studydays,
+      round(sum(h.match_is_ok) / count(h.icode) * 100) AS heads_tailed,
+      t.tails_core_percent,
+      t.tails_all_percent,
+      t.tails_othercc,
+      ht.ht_ratio,
+      t.cmpd_start_miss,
+      t.cmpd_end_miss,
+      t.cmp_patients_permonth,
+      t.site_teaching,
+      t.units_incmp,
+      t.tails_core_umortality,
+      t.tails_core_hmortality,
+      t.tails_all_umortality,
+      t.tails_all_hmortality,
+      t.tails_wardemx_delayed
+    FROM sitesfinal AS s
+    LEFT JOIN headsfinal AS h
+    ON s.icode = h.icode
+    LEFT JOIN sites_within_hes AS hes
+    ON s.icode = hes.icode
+    LEFT JOIN tails_early_by_site AS t
+    ON s.icode = t.icode
+    LEFT JOIN (SELECT icode, SUM(cmp_beds_max) AS cmp_beds_persite FROM unitsfinal GROUP BY icode) AS u
+    ON s.icode = u.icode
+    LEFT JOIN ht_ratio AS ht
+    ON s.icode = ht.icode
+    GROUP BY s.icode;
+  derivedfields:
+    - ccot_shift_pattern
+
+#  ==========================
+#  = SPOT - Trajectory work =
+#  ==========================
+-
+  tablename: working_traj
+  type: derived
+  pkey: [icnno, adno]
+  sitekey: icode
+  preflight: |
+    DROP TEMPORARY TABLE IF EXISTS q;
+    CREATE TEMPORARY TABLE q
+      SELECT
+        icode,
+        studymonth,
+        site_quality_by_month,
+        site_quality_q1,
+        studymonth_protocol_problem,
+        studymonth_allreferrals,
+        cmpd_month_miss,
+        cmp_admx_permonth,
+        match_quality_by_site,
+        count_patients,
+        count_all_eligible
+      FROM lite_summ_monthly
+      GROUP BY icode, studymonth;
+    ALTER TABLE q ADD INDEX(icode, studymonth);
+    -- ALTER TABLE headsfinal DROP INDEX icode_studymonth;
+    -- ALTER TABLE headsfinal ADD INDEX icode_studymonth (icode,studymonth) ;
+    -- ALTER TABLE headsfinal DROP INDEX idvisit;
+    -- ALTER TABLE headsfinal ADD INDEX idvisit (idvisit) ;
+    -- ALTER TABLE tailsfinal_elgdate_ix DROP INDEX idvisit;
+    -- ALTER TABLE tailsfinal_elgdate_ix ADD INDEX idvisit (idvisit) ;
+  sql_select: |
+   SELECT
+      t.icode,
+      t.studymonth,
+      t.dorisname,
+      t.icnno,
+      t.adno,
+      t.matchtype,
+      t.match_is_ok,
+      q.site_quality_q1,
+      q.site_quality_by_month,
+      q.studymonth_protocol_problem,
+      q.studymonth_allreferrals,
+      q.cmpd_month_miss,
+      q.cmp_admx_permonth,
+      q.match_quality_by_site,
+      q.count_patients,
+      q.count_all_eligible,
+      t.idpcode,
+      t.dob,
+      t.ethnicity,
+      t.sex,
+      t.daicu,
+      t.taicu,
+      t.cpr_v3,
+      t.loca,
+      t.classns,
+      t.htloca,
+      t.hloca,
+      t.ploca,
+      t.tuidi,
+      t.typeiha,
+      t.pa_v3,
+      t.raicu1,
+      t.dead_icu,
+      t.ahsurv,
+      t.yhlos,
+      t.dod,
+      t.tod,
+      t.ddicu,
+      t.tdicu,
+      t.hosptype,
+      t.icutype,
+      t.unit_name,
+      t.cmp_icubeds_persite,
+      t.status,
+      t.withinsh,
+      t.lctemp,
+      t.hctemp,
+      t.lnctemp,
+      t.hnctemp,
+      t.lsys,
+      t.hsys,
+      t.lhr,
+      t.hhr,
+      t.lnvrr,
+      t.hnvrr,
+      t.lvrr,
+      t.hvrr,
+      t.ilpo,
+      t.filpo,
+      t.philpo,
+      t.intilpo,
+      t.lph_v3,
+      t.lna,
+      t.hna,
+      t.hu,
+      t.lcreat,
+      t.hcreat,
+      t.up,
+      t.lwbc,
+      t.hwbc,
+      t.lpc,
+      t.ltot,
+      t.hbl,
+      t.imscore,
+      t.ap2aps,
+      t.ap2score,
+      t.ap2probuk,
+      t.elgage,
+      t.elgcpr,
+      t.elgemx,
+      t.elgfirst,
+      t.elgward,
+      t.elgoward,
+      t.elgtrans,
+      t.elgthtr,
+      t.elghdu,
+      t.icu_delay,
+      t.icu_delay_hours,
+      t.v_ccot_cmpd,
+      t.v_ccot_cmpd_date,
+      t.elgdate,
+      t.elgreport_first,
+      t.elgreport_heads,
+      t.elgreport_tails,
+      t.response_tails,
+      t.response_tails_note,
+      t.response_heads,
+      t.response_heads_note,
+      h.idpatient,
+      h.idvisit,
+      h.idmrn,
+      h.v_timestamp,
+      h.country,
+      h.lite_open,
+      h.lite_close,
+      h.elgprotocol,
+      h.allreferrals,
+      h.possible_duplicate,
+      h.filled_fields_count,
+      h.v_ccmds,
+      h.sepsis,
+      h.sepsis_site,
+      h.v_delay,
+      h.v_arrest,
+      h.v_timely,
+      h.v_ward,
+      h.abgunit,
+      h.hco3,
+      h.paco2,
+      h.pao2,
+      h.abgfio2,
+      h.ph,
+      h.avpu,
+      h.bpdia,
+      h.bpsys,
+      h.rxcvs_sofa,
+      h.rxrrt,
+      h.fio2,
+      h.fio2u,
+      h.rxfio2,
+      h.gcse,
+      h.gcsm,
+      h.gcsv,
+      h.gcst,
+      h.lactate,
+      h.bili,
+      h.creatinine,
+      h.sodium,
+      h.hrate,
+      h.hsinus,
+      h.vitals,
+      h.platelets,
+      h.gcs_presed,
+      h.rrate,
+      h.spo2,
+      h.temperature,
+      h.urea,
+      h.urine_period,
+      h.urine_vol,
+      h.wcc,
+      h.v_abx,
+      h.v_ccmds_rec,
+      h.v_disposal,
+      h.notes_light,
+      h.rx_visit,
+      h.v_cmpadmx,
+      h.disable_admx,
+      h.v_dc,
+      h.v_first,
+      h.adno_provided,
+      m.date_event as date_trace,
+      m.dead
+    FROM tailsFinal_ix AS t
+     LEFT JOIN headsfinal AS h
+      ON t.idvisit = h.idvisit
+    LEFT JOIN q
+      ON t.icode = q.icode AND t.studyMonth = q.studyMonth
+    LEFT JOIN tails_mris AS m ON t.icnno = m.icnno AND t.adno = m.adno 
+    WHERE t.icode IS NOT NULL AND t.elgdate = 1 AND t.elgemx = 1
+      AND (t.elgward = 1 OR t.elgoward = 1 OR t.elgtrans = 1)
+      AND t.icode != '72s';
+  postflight:
+  derivedfields:
+    - icu_discharge
+    - icu_admit
+    - uvol1h
+    - fio2_std
+    - pf_ratio
+    - sf_ratio
+    - bpmap
+    - sofa_r
+    - sofa_p
+    - sofa_c
+    - sofa_k
+    - sofa_h
+    - sofa_n
+    - sofa_score
+    - sepsis2001
+    - news_score
+    - news_risk
+    - icnarc_score
+  checks:
+    - icu_admit_before_discharge
+    - icu_admit_before_visit
+    - MRIS_ICNARC_death_mismatch
+    - MRIS_ICNARC_survival_mismatch
+    - MRIS_spotlight_date_mismatch
+    - wide_pulse_pressure
+    - urine_range_timed
+    - rrate_range_high
+    - spo2_range_low
+    - fio2_percent_range_high
+    - fio2_percent_range_low
+    - fio2_flow_range_high
+    - fio2_units_wrong_litres
+    - fio2_units_wrong_percent
+    - pao2_low_for_fio2_percent
+    - pao2_low_for_fio2_litres
+    - pao2_range_high_kpa
+    - pao2_range_low_kpa
+    - pao2_range_high_mmhg
+    - pao2_range_low_mmhg
+    - temperature_range_high
+    - temperature_range_low
+    - lactate_range_high
+  notes: |
+    NOTE: 2012-11-10 - the following might be needed if indexes don't exist already
+    ALTER TABLE tailsFinal ADD INDEX(icnno, studyMonth);
+    ALTER TABLE tailsFinal ADD INDEX(idvisit);
+    ALTER TABLE headsFinal ADD INDEX(idvisit);
+    NOTE: 2012-11-21 - excluding airedale too (icode = 72s)
+    NOTE: 2013-05-20 - *VERY* slow query: don't know why but to do with the join onto tails_mris
+-
+  tablename: tails_traj
+  type: derived
+  pkey: [icnno, adno]
+  sql_select: |
+    SELECT
+      icnno,
+      adno,
+      hadmit_date,
+      daicu,
+      taicu,
+      cpr_v3,
+      loca,
+      classns,
+      htloca,
+      hloca,
+      ploca,
+      tuidi,
+      typeiha,
+      pa_v3,
+      v_ccot_cmpd,
+      v_ccot_cmpd_date,
+      icu_delay_hours,
+      icu_delay,
+      dorisname,
+      hosptype,
+      icutype,
+      unit_name,
+      cmp_icubeds_persite,
+      withinsh,
+      imscore
+    FROM tailsmini_ix
+  postflight:
+  notes:
+
