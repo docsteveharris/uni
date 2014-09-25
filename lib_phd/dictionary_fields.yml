@@ -161,6 +161,7 @@
   talias:
     headsfinal: avpu
     idvisit: avpu
+    dailyassessment: avpu
   valias:
     A: 0
     V: 2
@@ -199,7 +200,7 @@
   unitlabel:
     latex: "\\textgreek{m}mol l\\textsuperscript{-1}"
   units: micromol / l
-  talias: {idlab: hbilir, headsfinal: hbilir}
+  talias: {idlab: hbilir, headsfinal: hbilir, tablelab: bili}
   checks:
     -
       type: min
@@ -216,6 +217,7 @@
     - from the 24 hours prior to arrival includes measured and recorded at visit start provided this is prior to any intervention by the visiting team
     - laboratory results only, i.e. the results of tests performed either in the Departments of Clinical Chemistry or Haematology etc. or in near-patient testing/point-of-care testing laboratories with formal quality control programmes in operation
   source: spotlight
+  #alternate source is spotid
 -
   fname: bpdia
   sqltype: smallint
@@ -223,7 +225,7 @@
   unitlabel:
     latex: mmHg
   units: mmHg
-  talias: {}
+  talias: {dailyassessment: bpdia}
   checks:
     -
       type: min
@@ -242,7 +244,7 @@
   units: mmHg
   unitlabel:
     latex: mmHg
-  talias: {}
+  talias: {dailyassessment: bpsys}
   checks:
     -
       type: min
@@ -293,7 +295,7 @@
   units: micromol / l
   unitlabel:
     latex: "\\textgreek{m}mol l\\textsuperscript{-1}"
-  talias: {idlab: hcreat, headsfinal: hcreat}
+  talias: {idlab: hcreat, headsfinal: hcreat, tablelab: creatinine}
   checks:
   -
     type: min
@@ -314,7 +316,7 @@
   fname: cxr_dt
   sqltype: date
   varlab: Date of index CXR
-  talias: {idpid: cxrdt, id_dvr_long: dcxr, id_dvr_wide: dcxr}
+  talias: {idpid: cxrdt, id_dvr_long: dcxr, id_dvr_wide: dcxr, tablelab: cxrdt, antimicrobialflowchart: cxrdt}
   notes: |
     date of the first chest radiograph (x-ray) in hospital where there was a clinical suspicion of infection
     chest radiographs performed purely to investigate other diagnoses (e.g. pneumothorax) or for procedural reasons (naso-gastric tube placement) do not qualify
@@ -326,7 +328,8 @@
   sqltype: tinyint
   varlab: Pleural effusion on CXR
   talias: {idpid: cxreffusion}
-  valias: &alias_prob {'n':1, 's':2, 'r':3, 'd':4} # None, poSsible, pRobable, Definite
+  valias: &alias_prob {n:1, s:2, r:3, d:4} 
+   # None, poSsible, pRobable, Definite
   vallab: *label_prob # re-using probability label
   checks:
     -
@@ -380,7 +383,7 @@
   fname: delirium
   sqltype: tinyint
   varlab: Delirium
-  talias: {idvisit: confusion}
+  talias: {idvisit: confusion, dailyassessment: delirium}
   # convert to common value regardless of entry
   valias: *value_yesno
   # appropriately label that common value
@@ -439,7 +442,7 @@
   fname: fio2
   sqltype: smallint
   varlab: Inspired oxygen value
-  talias: {idvisit: fio2, headsfinal: fio2}
+  talias: {idvisit: fio2, headsfinal: fio2, dailyassessment: fio2}
   notes: |
     inspired oxygen measured and recorded at the time of the recorded PaO2 when available or oxygen saturation (when PaO2 not available)
     inspired oxygen units are recorded either as % (room air, Venturi, CPAP, NIV or IPPV) or litres min-1 (wall, reservoir bag and NIV)
@@ -461,6 +464,7 @@
   talias:
     idvisit: fio2units
     headsfinal: fio2unit
+    dailyassessment: fio2unit
   valiases:
     -
       valias_tables: [headsfinal, headsvisit]
@@ -471,6 +475,7 @@
   vallab:
     p: percent
     l: litres per min
+    # check with steve if this is okay
   checks:
   -
     type: legal_vals
@@ -487,6 +492,7 @@
   fname: fluidin
   sqltype: smallint
   varlab: 24 hour fluid intake
+  talias: {dailyassessment: fluidin}
   units: mls
   notes: |
     total fluid intake (intravenous and oral) for the calendar day
@@ -631,7 +637,7 @@
   fname: gcst
   sqltype: tinyint
   varlab: Glasgow Coma Score
-  talias: {}
+  talias: {dailyassessment: gcst}
   checks:
     -
       type: min
@@ -652,7 +658,7 @@
   fname: hadmit_date
   sqltype: date
   varlab: Date of admission to hospital
-  talias: {idpid: admissiondt, idpatient: hadate, id_dvr_long: dah, id_dvr_wide: dah, tailsmini: dah}
+  talias: {idpid: admissiondt, idpatient: hadate, id_dvr_long: dah, id_dvr_wide: dah, tailsmini: dah, tablepatient: hadate}
   checks:
     -
       type: min
@@ -746,7 +752,7 @@
     latex: "Heart rate"
   unitlabel:
     latex: "min\\textsuperscript{-1}"
-  talias: {headsfinal: hrate, idvisit: hrate}
+  talias: {headsfinal: hrate, idvisit: hrate, dailyassessment: hrate}
   checks:
     -
       type: min
@@ -772,6 +778,7 @@
     visits: hryhth
     id_dvr_long: hrhyth
     headsfinal: hrhyt
+    dailyassessment: hrhyt
   valias: {0: 1, 1: 0, s: 1, o: 0} # (SPOT)light tick if non-sinus hence 0->1 and 1 -> 0
   vallab: {1: Sinus, 0: Non-sinus}
   checks:
@@ -807,6 +814,15 @@
     idnotesu: spotidno
     idlongDVR_respCurr: id
     mortality_uclh: spotidnno
+    tablepatient: spotidno
+    tablelab: spotidno
+    biologicalsampling: spotidno
+    antimicrobialflowchart: spotidno
+    microbiologysummary: spotidno
+    dailyassessment: spotidno
+    tablenotes: spotidno
+    notesidlabuch: spotidno
+    dailyassessstudydaynotes: spotidno
 -
   fname: idpatient
   sqltype: char
@@ -939,6 +955,15 @@
     idnotesp: patientid
     idnotesl: patientid
     idnotesu: patientid
+    tablepatient: pinitials
+    tablelab: pinitials
+    biologicalsampling: pinitials
+    antimicrobialflowchart: pinitials
+    microbiologysummary: pinitials
+    dailyassessment: pinitials
+    tablenotes: pinitials
+    notesidlabuch: pinitials
+    dailyassessstudydaynotes: pinitials
 -
   fname: lactate
   sqltype: float
@@ -947,7 +972,7 @@
   unitlabel:
     latex: "mmol l\\textsuperscript{-1}"
   stataformat: "%9.1f"
-  talias: {idvisit: habl, headsfinal: habl}
+  talias: {idvisit: habl, headsfinal: habl, dailyassessment: habl}
   checks:
     -
       type: min
@@ -967,7 +992,7 @@
   sqltype: float
   varlab: lymphocyte count
   units: cells x10e9 / l
-  talias: {idlab: lyc}
+  talias: {idlab: lyc, tablelab: lymph}
   checks:
     -
       type: min
@@ -999,14 +1024,14 @@
   fname: meventcode
   sqltype: char
   varlab: ICNARC diagnostic code for major event
-  talias: {idvisit: majoreventcode}
+  talias: {idvisit: majoreventcode, dailyassessment: meventcode}
   # TODO: 2012-07-23 - write a regex for ICNARC diagnostic codes
 -
   fname: meventtxt
   sqltype: char
   sqllen: 255
   varlab: Major event free text
-  talias: {idvisit: majoreventstxt}
+  talias: {idvisit: majoreventstxt, dailyassessment: meventtxt}
 -
   fname: namef
   sqltype: char
@@ -1043,7 +1068,7 @@
   fname: notes_id
   sqltype: text
   varlab: Notes - (SPOT)id patient
-  talias: {idnotesp: tablepatientnotes}
+  talias: {idnotesp: tablepatientnotes, tablenotes: tablepatientnotes}
 -
   fname: notes_idlab
   sqltype: text
@@ -1057,7 +1082,8 @@
     idnotesU: notes_idlabuclh
     biologicalsamplinguclhnotes: BIOLOGICALSAMPLINGNOTES
     idnotesu: biologicalsamplingnotes
--
+    notesidlabuch: notes-idlabuch
+  # check with steve --> does this field need renaiming in excel to remove dash?
   fname: notes_idweb
   sqltype: text
   varlab: Notes - (SPOT)id web portal
@@ -1119,7 +1145,7 @@
   sqltype: float
   varlab: Arterial PaO~2~
   stataformat: "%9.1f"
-  talias: {idvisit: abgpao2, headsfinal: abgpao2}
+  talias: {idvisit: abgpao2, headsfinal: abgpao2, dailyassessment: abgpao2}
   checks:
   -
     type: min
@@ -1160,7 +1186,7 @@
   unitlabel:
     latex: "{\\texttimes}10\\textsuperscript{9}l \\textsuperscript{-1}"
   units: x10e9
-  talias: {idlab: plat, headsfinal: plat}
+  talias: {idlab: plat, headsfinal: plat, tablelab: platelets}
   checks:
   -
     type: min
@@ -1212,7 +1238,7 @@
   fname: pro_or_retro
   sqltype: tinyint
   varlab: Prospective or retrospective data abstraction
-  talias: {idvisit: datapro}
+  talias: {idvisit: datapro, dailyassessment: datapro}
   valias: {0: R, 1: P}
   vallab: {0: Retrospective, 1: Prospective}
   checks:
@@ -1257,7 +1283,7 @@
   units: breaths / min
   unitlabel:
     latex: "min\\textsuperscript{-1}"
-  talias: {headsfinal: rrate, idvisit: rrate}
+  talias: {headsfinal: rrate, idvisit: rrate, dailyassessment: rrate}
   checks:
     -
       type: min
@@ -1345,7 +1371,7 @@
   fname: rxcvs_dose
   sqltype: float
   varlab: Highest vasopressor dose
-  talias: {idvisit: cvsdose, id_dvr_long: rxcvsdose}
+  talias: {idvisit: cvsdose, id_dvr_long: rxcvsdose, dailyassessment: cvsdose}
   checks:
   -
     type: min
@@ -1361,7 +1387,7 @@
   fname: rxcvs_drug
   sqltype: char
   varlab: Most potent vasopressor
-  talias: {idvisit: cvssupp, id_dvr_long: rxcvsdrug}
+  talias: {idvisit: cvssupp, id_dvr_long: rxcvsdrug, dailyassessment: cvssupp}
   valias:
     D: 1
     N: 2
@@ -1405,7 +1431,7 @@
     N: 5
     P: 6
     O: 7
-  talias: {idvisit: fio2sys, headsfinal: fio2sys}
+  talias: {idvisit: fio2sys, headsfinal: fio2sys, dailyassessment: fio2sys}
   vallab:
     0: Room air
     1: Wall (variable performance)
@@ -1451,7 +1477,7 @@
   varlab: Treatment limitation order
   tablerowlabel:
     latex: Treament limitation order
-  talias: {idvisit: limits}
+  talias: {idvisit: limits, dailyassessment: limits}
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1469,7 +1495,7 @@
   fname: rxpeep
   sqltype: tinyint
   varlab: PEEP/CPAP
-  talias: {idvisit: fio2peep}
+  talias: {idvisit: fio2peep, dailyassessment: fio2peep}
   checks:
   -
     type: min
@@ -1485,7 +1511,7 @@
   fname: rxplat
   sqltype: tinyint
   varlab: Platelet transfusion flag
-  talias: {idvisit: platrx}
+  talias: {idvisit: platrx, dailyassessment: platrx}
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1522,6 +1548,7 @@
   talias:
     idvisit: ccmdsrenal
     headsfinal: dialysis
+    dailyassessment: ccmdsrenal
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1540,6 +1567,7 @@
   varlab: Sedation flag
   talias:
     idvisit: sedated
+    dailyassessment: sedated
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1554,6 +1582,7 @@
   varlab: Clinical sepsis
   tablerowlabel:
     latex: Reported sepsis diagnosis
+  talias: {dailyassessment: sepsis}
   valias:
    A: 1
    B: 2
@@ -1595,7 +1624,7 @@
   varlab: Clinical source of sepsis
   tablerowlabel:
     latex: Reported source of sepsis
-  talias: {headsfinal: sepsite}
+  talias: {headsfinal: sepsite, dailyassessment: sepsis|site}
   valias:
     A: 1
     B: 2
@@ -1623,6 +1652,7 @@
     - most likely source, or organ system, of infection causing sepsis
     - if more than one source and you consider one to be most important then select this
     - if more than one source and you consider them to be of similar importance then select "Other" and append an explanatory note in the visit notes field
+# check with steve why this field has '|' in it - ?rename in excel
 -
   fname: sex
   sqltype: tinyint
@@ -1667,7 +1697,22 @@
     ket: kettering general hospital
     nor: northampton general hospital
     fre: freeman hospital
-  talias: {idwide: sitename, idlab: sitecode, idpatient: sitecode, idvisit: sitecode, idlabuclh: sitecode, idpid: sitename}
+  talias:
+   idwide: sitename
+   idlab: sitecode
+   idpatient: sitecode
+   idvisit: sitecode
+   idlabuclh: sitecode
+   idpid: sitename
+   tablepatient: site
+   tablelab: site
+   biologicalsampling: site
+   antimicrobialflowchart: site
+   microbiologysummary: site
+   dailyassessment: site
+   tablenotes: site
+   notesidlabuch: site
+   dailyassessstudydaynotes: site
   checks:
   -
     type: legal_vals
@@ -1729,7 +1774,7 @@
   fname: smppax1
   sqltype: char
   varlab: 1st PAX gene sample flag
-  talias: {idlabuclh: 1stpax} # 1stpax gene sample
+  talias: {idlabuclh: 1stpax, tablelab: smppax1} # 1stpax gene sample
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1742,7 +1787,7 @@
   fname: smppax2
   sqltype: char
   varlab: 2nd PAX gene sample flag
-  talias: {idlabuclh: 2ndpax} # 2ndpax gene sample
+  talias: {idlabuclh: 2ndpax, tablelab: smppax2} # 2ndpax gene sample
   valias: *value_yesno
   vallab: *label_truefalse
   checks:
@@ -1776,7 +1821,7 @@
   unitlabel:
     latex: "mmol l\\textsuperscript{-1}"
   units: mmol / l
-  talias: {idlab: hna, headsfinal: hna}
+  talias: {idlab: hna, headsfinal: hna, tablelab: sodium}
   checks:
   -
     type: min
@@ -1831,7 +1876,7 @@
   varlab: Oxygen saturation
   unitlabel:
     latex: "\\%"
-  talias: {idvisit: spo2, headsfinal: spo2}
+  talias: {idvisit: spo2, headsfinal: spo2, dailyassessment: spo2}
   checks:
   -
     type: min
@@ -1857,7 +1902,7 @@
     latex: "{\\textdegree}C"
   stataformat: "%9.1f"
   units: degrees centrigrade
-  talias: {idvisit: ftemp, headsfinal: temp, id_dvr_long: temp}
+  talias: {idvisit: ftemp, headsfinal: temp, id_dvr_long: temp, dailyassessment: ftemp}
   checks:
   -
     type: min
@@ -1913,7 +1958,7 @@
   unitlabel:
     latex: "mmol l\\textsuperscript{-1}"
   stataformat: "%9.1f"
-  talias: {idlab: hurea, headsfinal: urea}
+  talias: {idlab: hurea, headsfinal: urea, tablelab: urea}
   checks:
   -
     type: min
@@ -1978,7 +2023,7 @@
   fname: urine1
   sqltype: smallint
   varlab: Hourly urine volume
-  talias: {idvisit: uvolh}
+  talias: {idvisit: uvolh, dailyassessment: urine1}
   checks:
   -
     type: min
@@ -1994,7 +2039,7 @@
   fname: urine24
   sqltype: smallint
   varlab: 24 hourly urine volume
-  talias: {idvisit: uvold}
+  talias: {idvisit: uvold, dailyassessment: uvold}
   checks:
   -
     type: min
@@ -2062,7 +2107,7 @@
     1: Level 1
     2: Level 2
     3: Level 3
-  talias: {headsfinal: ccmdspre, idvisit: ccmds, id_dvr_long: ccmds, headsvisit: ccmpdspre}
+  talias: {headsfinal: ccmdspre, idvisit: ccmds, id_dvr_long: ccmds, headsvisit: ccmpdspre, dailyassessment: ccmds}
   definition: |
     - if the visiting member of staff is a member of the critical care outreach team then do not use their current presence to define level of care on visit arrival
     - location does not determine Level of care
@@ -2162,20 +2207,20 @@
   fname: v_sampledate
   sqltype: date
   varlab: Sample date (DDMMYY) format for UCLH bloods
-  talias: {idlabuclh: sampledate}
+  talias: {idlabuclh: sampledate, tablelab: sampledate}
   checks:
 -
   fname: v_sampletime
   sqltype: char
   sqllen: 4
   varlab: Sample time (HHMM) format for UCLH bloods
-  talias: {idlabuclh: sampletime}
+  talias: {idlabuclh: sampletime, tablelab: sampletime}
   checks:
 -
   fname: v_date
   sqltype: date
   varlab: Visit date
-  talias: {idvisit: vdate, idlabuclh: sampledate, id_dvr_long: dass}
+  talias: {idvisit: vdate, idlabuclh: sampledate, id_dvr_long: dass, dailyassessment: vdate}
   checks:
   -
     type: min
@@ -2294,7 +2339,7 @@
   fname: v_time
   sqltype: time
   varlab: Visit time
-  talias: {idlabuclh: sampletime, idvisit: vtime}
+  talias: {idlabuclh: sampletime, idvisit: vtime, dailyassessment: vtime}
 -
   fname: v_timely
   sqltype: tinyint
@@ -2357,7 +2402,7 @@
   stataformat: "%9.1fc"
   unitlabel:
     latex: "{\\texttimes}10\\textsuperscript{9}l \\textsuperscript{-1}"
-  talias: {idlab: wcc, headsfinal: wcc}
+  talias: {idlab: wcc, headsfinal: wcc, tablelab: wcc}
   checks:
   -
     type: min
@@ -2374,6 +2419,7 @@
     - from the 24 hours prior to arrival includes measured and recorded at visit start provided this is prior to any intervention by the visiting team
     - laboratory results only, i.e. the results of tests performed either in the Departments of Clinical Chemistry or Haematology etc. or in near-patient testing/point-of-care testing laboratories with formal quality control programmes in operation
   source: spotlight
+  #alternate source is spotid tablelab
 -
   fname: key_icnarc
   sqltype: char
@@ -3094,6 +3140,7 @@
   derived: True
   derived_missing_ok: False
   primaryfields: [v_daymonth, cxr_dt]
+  talias: {tablelab: datelab, antimicrobialflowchart: datelab}
   code:
     python: |
       yyear = cxr_dt.year
@@ -3110,6 +3157,7 @@
         derived_var = datetime.datetime(yyear - 1, mmonth_lab, dday)
       else:
         derived_var = None
+  #check with steve if above code makes e.g. 2510 into 25 oct
 -
   fname: mort_hosp
   sqltype: tinyint
@@ -3246,6 +3294,8 @@
   sqltype: smallint
   varlab: time difference in days between this day and day zero
   units: days
+  talias: {dailyassessment: sdayreported}
+  # check with steve if this is okay - does he want -/+ symbol?
 -
   fname: sample_delta
   sqltype: smallint
@@ -6242,4 +6292,798 @@
   sqltype: tinyint
   varlab: Admitted to CMP critical care
   vallab: *label_truefalse
+-
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# additions to dictionary by myura appear below
+# spot(id) data file 22 08 2014
+-
+  fname: ainitials
+  sqltype: char
+  sqllen: 4
+  varlab: Assessor initials
+  talias:
+    tablepatient: ainitials
+    tablelab: ainitials
+    biologicalsampling: ainitials
+    antimicrobialflowchart: ainitials
+    microbiologysummary: ainitials
+    dailyassessment: ainitials
+-
+  fname: chemodatestart
+  sqltype: date
+  varlab: Start date of chemotherapy
+  talias: {tablepatient: chemodatestart}
+  checks:
+    -
+      type: min
+      value: 2012-01-01
+      msg: Below minimum value
+      response: drop_field
+    -
+      type: max
+      value: 2014-06-01
+      msg: Above maximum value
+      response: drop_field
+-
+  fname: chemodatestop
+  sqltype: date
+  varlab: Stop date of chemotherapy
+  talias: {tablepatient: chemodatestop}
+  checks:
+    -
+      type: min
+      value: 2012-01-01
+      msg: Below minimum value
+      response: drop_field
+    -
+      type: max
+      value: 2014-06-01
+      msg: Above maximum value
+      response: drop_field
+-
+  fname: neutrodatestart
+  sqltype: date
+  varlab: Date first neutropaenic
+  talias: {tablepatient: neutrodatestart}
+  checks:
+    -
+      type: min
+      value: 2012-01-01
+      msg: Below minimum value
+      response: drop_field
+    -
+      type: max
+      value: 2014-06-01
+      msg: Above maximum value
+      response: drop_field
+-
+  fname: lymph2
+  sqltype: tinyint
+  varlab: Lypmhoma type
+  talias: {tablepatient: lymph2}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+  # check with steve as the lymphocyte count also has the same fname
+  # therefore, does this need to be renamed in excel prior to import?
+  # suggest to steve that we change this column in excel file to lymph2
+-
+  fname: lymphstatus
+  sqltype: tinyint
+  varlab: Lypmhoma status
+  talias: {tablepatient: lymphstatus}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+
+-
+  fname: leuk
+  sqltype: tinyint
+  varlab: Leukaemia type
+  talias: {tablepatient: leuk}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: leukstatus
+  sqltype: tinyint
+  varlab: Leukaemia status
+  talias: {tablepatient: leukstatus}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: myeloma
+  sqltype: tinyint
+  varlab: Myeloma type
+  talias: {tablepatient: myeloma}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: myelomastatus
+  sqltype: tinyint
+  varlab: Myeloma status
+  talias: {tablepatient: myelomastatus}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: rxline
+  sqltype: tinyint
+  varlab: Treatment line
+  talias: {tablepatient: rxline}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3, 4]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: rxtype
+  sqltype: tinyint
+  varlab: Treatment type
+  talias: {tablepatient: rxtype}
+  checks:
+   -
+      type: legal_vals
+      value: [1, 2, 3, 4]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: immunocyclosporin
+  sqltype: tinyint
+  varlab: Pneumonia risk factor - cyclosporin
+  talias: {tablepatient: immunocyclosporin}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: immunoseptrin
+  sqltype: tinyint
+  varlab: Pneumonia risk factor - septrin
+  talias: {tablepatient: immunoseptrin}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: recentsepsis
+  sqltype: tinyint
+  varlab: Recent sepsis
+  talias: {tablepatient: recentsepsis}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+    -
+      type: legal_vals
+      value: [0, 1, Y, N, y, n]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: recentchemo
+  sqltype: tinyint
+  varlab: Recent chemotherapy
+  talias: {tablepatient: recentchemo}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+    -
+      type: legal_vals
+      value: [0, 1, Y, N, y, n]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: neutrophils
+  sqltype: float
+  varlab: Neutrophil cell count
+  units: x10e9 cells / l
+  stataformat: "%9.1fc"
+  unitlabel:
+    latex: "{\\texttimes}10\\textsuperscript{9}l \\textsuperscript{-1}"
+  talias: {tablelab: neutrophils}
+  checks:
+  -
+    type: min
+    value: 0
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 150
+    msg: Above maximum value
+    response: drop_field
+-
+  fname: hb
+  sqltype: float
+  varlab: Haemoglobin count
+  units: g / dl
+  stataformat: "%9.1fc"
+  unitlabel:
+    latex: "\\g dl\\textsuperscript{-1}"
+  units: micromol / l
+  talias: {tablelab: hb}
+  checks:
+  -
+    type: min
+    value: 0
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 50
+    msg: Above maximum value
+    response: drop_field
+-
+  fname: crp
+  sqltype: tinyint
+  varlab: C-reactive protein
+  units: mg / l
+  stataformat: "%9.1fc"
+  unitlabel:
+    latex: "\\mg l\\textsuperscript{-1}"
+  talias: {tablelab: crp}
+  checks:
+  -
+    type: min
+    value: 0
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 750
+    msg: Above maximum value
+    response: drop_field
+-
+  fname: alb
+  sqltype: tinyint
+  varlab: Albumin
+  units: g / l
+  stataformat: "%9.1fc"
+  unitlabel:
+    latex: "\\g l\\textsuperscript{-1}"
+  talias: {tablelab: alb}
+  checks:
+  -
+    type: min
+    value: 0
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 100
+    msg: Above maximum value
+    response: drop_field
+-
+  fname: ldh
+  sqltype: tinyint
+  varlab: Lactate dehydrogenase
+  units: IU / l
+  stataformat: "%9.1fc"
+  unitlabel:
+    latex: "\\IU l\\textsuperscript{-1}"
+  talias: {tablelab: ldh}
+  checks:
+  -
+    type: min
+    value: 0
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 100
+    msg: Above maximum value
+    response: drop_field
+-
+  fname: bldculture
+  sqltype: tinyint
+  varlab: Blood cultures taken
+  talias: {tablelab: bldculture}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: smpserumcount
+  sqltype: tinyint
+  varlab: Number of serum aliquots
+  talias: {biologicalsampling: smpserumcount}
+  checks:
+   -
+      type: legal_vals
+      value: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: smpedtacount
+  sqltype: tinyint
+  varlab: Number of plasma aliquots
+  talias: {biologicalsampling: smpedtacount}
+  checks:
+   -
+      type: legal_vals
+      value: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      msg: Illegal response
+      response: drop_field
+-
+  fname: smpbuffy
+  sqltype: tinyint
+  varlab: Buffy coat
+  talias: {biologicalsampling: smpbuffy}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: abx1
+  sqltype: char
+  varlab: Antimicrobial 1
+  talias: {antimicrobialflowchart: abx1}
+  vallab: &lab_abx
+    ACY: Acyclovir
+    AMB: Ambisome
+    AMO: Amoxycillin
+    AMP: Ampicillin
+    ATB: Anti-tuberculous therapy
+    AVI: Anti-viral (other)
+    CEP: Cephalosporins
+    CIP: Ciprofloxacin
+    CLA: Clarithromycin
+    CLI: Clindamycin
+    COA: Co-amoxiclav
+    COT: Co-trimoxazole
+    ERY: Erythromycin
+    FLU: Flucloxacllin
+    FLZ: Fluconazole
+    FUS: Fusidic acid
+    GAN: Ganciclovir
+    GEN: Gentamicin
+    IMI: Imipenem
+    ITZ: Itraconazole
+    LIN: Linezolid
+    MER: Meropenem
+    MET: Metronidazole
+    NIT: Nitrofurantoin
+    PEN: Penicillin
+    PIP: Piperacillin-tazobactam
+    QUI: Other fluoroquinolone
+    RIF: Rifampicin
+    TEI: Teicoplanin
+    TET: Tetracyclines
+    TRI: Trimethoprim
+    VAN: Vancomycin
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: abx2
+  sqltype: char
+  varlab: Antimicrobial 2
+  talias: {antimicrobialflowchart: abx2}
+  vallab: *lab_abx
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: abx3
+  sqltype: char
+  varlab: Antimicrobial 3
+  talias: {antimicrobialflowchart: abx3}
+  vallab: *lab_abx
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: abx4
+  sqltype: char
+  varlab: Antimicrobial 4
+  talias: {antimicrobialflowchart: abx4}
+  vallab: *lab_abx
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: abx5
+  sqltype: char
+  varlab: Antimicrobial 5
+  talias: {antimicrobialflowchart: abx5}
+  vallab: *lab_abx
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: abx6
+  sqltype: char
+  varlab: Antimicrobial 6
+  talias: {antimicrobialflowchart: abx6}
+  vallab: *lab_abx
+  checks:
+  -
+    type: legal_vals
+    value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+    msg: Illegal value
+    response: drop_field
+-
+  fname: rxroids2
+  sqltype: tinyint
+  varlab: Steroid use
+  talias: {antimicrobialflowchart: rxroids}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+    #suggest to steve that we change this column in excel file to rxroids2
+-
+  fname: gmcsf
+  sqltype: tinyint
+  varlab: GM-CSF
+  talias: {antimicrobialflowchart: gmcsf}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microblood
+  sqltype: tinyint
+  varlab: Blood microbiology sample
+  talias: {microbiologysummary: microblood}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microsputum
+  sqltype: tinyint
+  varlab: Sputum microbiology sample
+  talias: {microbiologysummary: microsputum}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microurine
+  sqltype: tinyint
+  varlab: Urine microbiology sample
+  talias: {microbiologysummary: microurine}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microtap
+  sqltype: tinyint
+  varlab: Tap microbiology sample
+  talias: {microbiologysummary: microtap}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microline
+  sqltype: tinyint
+  varlab: Line microbiology sample
+  talias: {microbiologysummary: microline}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: microwound
+  sqltype: tinyint
+  varlab: Wound microbiology sample
+  talias: {microbiologysummary: microwound}
+  valias: *value_yesno
+  vallab: *label_truefalse
+  checks:
+  -
+    type: legal_vals
+    value: [0, 1]
+    msg: Illegal response
+    response: drop_field
+-
+ fname: diagmicro
+ sqltype: tinyint
+ varlab: Microbiology Result
+ talias: {microbiologysummary: diagmicro}
+ vallab: 
+   1: Streptococcus pneumoniae
+   2: Staphylococcus aureus (MSSA)
+   3: Mycoplasma pneumoniae
+   4: Haemophilus spp
+   5: Klebsiella pneumoniae
+   6: Chlamydia spp
+   7: Legionella spp
+   8: Pseudomonas aeruginosa
+   9: Influenza (Viral)
+   10: Other
+   11: Candida albicans
+   12: Candida non-albicans
+   13: HSV
+   14: CMV
+   15: E coli
+   16: Clostridium difficile
+   17: MRSA
+   18: Bacteroides spp
+   19: Acinetobacter
+   20: PCP
+   21: Proteus spp
+ checks:
+    -
+      type: min
+      value: 0
+      msg: Below minimum value
+      response: drop_field
+    -
+      type: max
+      value: 21
+      msg: Above minimum value
+      response: drop_field
+# should this be renamed to diagmicro2 as there is already a diagmicro but with only 10 options?
+-
+  fname: microres1
+  sqltype: tinyint
+  varlab: Microbiology resistance 1
+  talias: {microbiologysummary: microres1}
+  vallab: *lab_abx
+  checks:
+    -
+      type: legal_vals
+      value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+      msg: Illegal value
+      response: drop_field
+-
+  fname: microres2
+  sqltype: tinyint
+  varlab: Microbiology resistance 2
+  talias: {microbiologysummary: microres2}
+  vallab: *lab_abx
+  checks:
+    -
+      type: legal_vals
+      value: ['ACY', AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+      msg: Illegal value
+      response: drop_field
+-
+  fname: microres3
+  sqltype: tinyint
+  varlab: Microbiology resistance 3
+  talias: {microbiologysummary: microres3}
+  vallab: *lab_abx
+  checks:
+    -
+      type: legal_vals
+      value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+      msg: Illegal value
+      response: drop_field
+-
+  fname: microres4
+  sqltype: tinyint
+  varlab: Microbiology resistance 4
+  talias: {microbiologysummary: microres4}
+  vallab: *lab_abx
+  checks:
+    -
+      type: legal_vals
+      value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+      msg: Illegal value
+      response: drop_field
+-
+  fname: microres5
+  sqltype: tinyint
+  varlab: Microbiology resistance 5
+  talias: {microbiologysummary: microres5}
+  vallab: *lab_abx
+  checks:
+    -
+      type: legal_vals
+      value: [ACY, AMB, AMO, AMP, ATB, AVI, CEP, CIP, CLA, CLI, COA, COT, ERY, FLU, FLZ, FUS, GAN, GEN, IMI, ITZ, LIN, MER, MET, NIT, PEN, PIP, QUI, RIF, TEI, TET, TRI, VAN]
+      msg: Illegal value
+      response: drop_field
+-
+ fname: inccu
+ sqltype: tinyint
+ varlab: In critical care unit?
+ talias: {dailyassessment: inccu}
+ valias: *value_yesno
+ vallab: *label_truefalse
+ checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+ fname: majorevents
+ sqltype: tinyint
+ varlab: Major physiological event
+ talias: {dailyassessment: majorevents}
+ valias: *value_yesno
+ vallab: *label_truefalse
+ checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+# have made a new variable as other one was not y/n as in this form
+# suggest to steve to rename to majorevents2 in excel and here
+-
+ fname: ccotvisit
+ sqltype: tinyint
+ varlab: Critical care outreach visit
+ talias: {dailyassessment: ccotvisit}
+ valias: *value_yesno
+ vallab: *label_truefalse
+ checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+# have made a new variable as other one was not y/n as in this form
+# suggest to steve to rename to ccotvisit2 in excel and here
+-
+ fname: diarrhoea
+ sqltype: tinyint
+ varlab: Diarrhoea
+ talias: {dailyassessment: diarrhoea}
+ valias: *value_yesno
+ vallab: *label_truefalse
+ checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+ fname: txred
+ sqltype: tinyint
+ varlab: No of units of red cells transfused
+ talias: {dailyassessment: txred}
+ valias: {n: 0, N: 0, no: 0, NO: 0}
+  # check with steve - is this formatted correctly
+  # sometimes assessors wrote 'n'instead of 0
+-
+ fname: mucositis
+ sqltype: tinyint
+ varlab: Mucositis
+ talias: {dailyassessment: mucositis}
+ valias: *value_yesno
+ vallab: *label_truefalse
+ checks:
+  -
+    type: legal_vals
+    value: [0, 1, Y, N, y, n]
+    msg: Illegal response
+    response: drop_field
+-
+  fname: weight
+  sqltype: float
+  varlab: Weight
+  units: kg
+  talias: {dailyassessment: weight}
+  checks:
+  -
+    type: min
+    value: 10
+    msg: Below minimum value
+    response: drop_field
+  -
+    type: max
+    value: 300
+    msg: Above maximum value
+    response: drop_field
+
+-
+  fname: dailyassessmentnotes
+  sqltype: text
+  varlab: Notes - (SPOT)id daily assessment
+  talias: {dailyassessstudydaynotes: dailyassessmentnotes}
+-
